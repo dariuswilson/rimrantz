@@ -13,12 +13,17 @@ export default function App() {
 
   const fetchUsername = async (userId) => {
     try {
-      const { data } = await supabase
-        .from("profiles")
-        .select("username")
-        .eq("user_id", userId)
-        .maybeSingle();
-      return data?.username || null;
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/profiles?select=username&user_id=eq.${userId}&limit=1`,
+        {
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+        },
+      );
+      const data = await res.json();
+      return data?.[0]?.username || null;
     } catch (err) {
       console.log("fetch error:", err);
       return null;
