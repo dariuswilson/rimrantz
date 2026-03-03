@@ -47,10 +47,11 @@ export default function Feed({
   const fetchComments = async () => {
     const { data } = await supabase
       .from("comments")
-      .select("*, profiles(avatar_url)")
+      .select("*, profiles(avatar_url), is_shadowbanned")
       .order("created_at", { ascending: true });
     const grouped = {};
     data?.forEach((c) => {
+      if (c.profiles?.is_shadowbanned && c.user_id !== user?.id) return;
       if (!grouped[c.take_id]) grouped[c.take_id] = [];
       grouped[c.take_id].push(c);
     });

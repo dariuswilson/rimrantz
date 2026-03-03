@@ -36,6 +36,94 @@ const NBA_TEAMS = [
 
 const POSTS_PER_PAGE = 10;
 
+function ModeratorPanel() {
+  const [shadowbanned, setShadowbanned] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchShadowbanned = async () => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("user_id, username, strike_count, avatar_url")
+      .eq("is_shadowbanned", true);
+    setShadowbanned(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    const load = async () => {
+      await fetchShadowbanned();
+    };
+    load();
+  }, []);
+
+  const unban = async (userId) => {
+    await supabase
+      .from("profiles")
+      .update({ is_shadowbanned: false, strike_count: 0 })
+      .eq("user_id", userId);
+    fetchShadowbanned();
+  };
+
+  return (
+    <div
+      className="rounded-2xl p-5 mb-6"
+      style={{
+        background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)",
+        border: "1px solid rgba(99,102,241,0.3)",
+      }}
+    >
+      <h3 className="text-sm font-semibold text-indigo-400 uppercase tracking-wider mb-4">
+        🛡️ Moderator Panel
+      </h3>
+
+      <p className="text-zinc-400 text-xs mb-4">Shadowbanned users</p>
+
+      {loading && <p className="text-zinc-500 text-sm">Loading...</p>}
+
+      {!loading && shadowbanned.length === 0 && (
+        <p className="text-zinc-500 text-sm">No shadowbanned users 🎉</p>
+      )}
+
+      <div className="space-y-3">
+        {shadowbanned.map((u) => (
+          <div
+            key={u.user_id}
+            className="flex items-center gap-3 p-3 rounded-xl"
+            style={{ background: "rgba(255,255,255,0.04)" }}
+          >
+            <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-sm font-bold overflow-hidden flex-shrink-0">
+              {u.avatar_url ? (
+                <img
+                  src={u.avatar_url}
+                  alt="avatar"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                u.username?.[0]?.toUpperCase()
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="text-white text-sm font-medium">@{u.username}</p>
+              <p className="text-red-400 text-xs">{u.strike_count}/3 strikes</p>
+            </div>
+            <button
+              onClick={() => unban(u.user_id)}
+              className="px-3 py-1 rounded-lg text-xs font-medium transition"
+              style={{
+                background: "rgba(34,197,94,0.15)",
+                border: "1px solid rgba(34,197,94,0.3)",
+                color: "#22c55e",
+              }}
+            >
+              ✓ Unban
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Profile({ username, user, isModerator, onBack }) {
   const [profile, setProfile] = useState(null);
   const [takes, setTakes] = useState([]);
@@ -344,6 +432,9 @@ export default function Profile({ username, user, isModerator, onBack }) {
             </div>
           </div>
         )}
+
+        {/* Moderator Panel - only visible to mods on their own profile */}
+        {isModerator && <ModeratorPanel />}
 
         {/* Tabs */}
         <div
