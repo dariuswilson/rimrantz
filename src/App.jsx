@@ -88,8 +88,15 @@ export default function App() {
       if (session) {
         const name = await fetchUsername(session.user.id);
         setUsername(name);
+        const { data: modData } = await supabase
+          .from("moderators")
+          .select("user_id")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+        setIsModerator(!!modData);
       } else {
         setUsername(null);
+        setIsModerator(false);
       }
     });
 
