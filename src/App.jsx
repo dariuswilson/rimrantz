@@ -32,27 +32,9 @@ export default function App() {
       try {
         const {
           data: { session },
-          error,
         } = await supabase.auth.getSession();
 
-        if (error || !session) {
-          // Clear any stale session data
-          await supabase.auth.signOut();
-          setSession(null);
-          setUsername(null);
-          setLoading(false);
-          clearTimeout(timeout);
-          return;
-        }
-
-        // Verify the session is actually valid
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-
-        if (userError || !user) {
-          await supabase.auth.signOut();
+        if (!session) {
           setSession(null);
           setUsername(null);
           setLoading(false);
@@ -64,9 +46,7 @@ export default function App() {
         const name = await fetchUsername(session.user.id);
         setUsername(name);
       } catch (_err) {
-        await supabase.auth.signOut();
-        setSession(null);
-        setUsername(null);
+        console.log("init error:", _err);
       }
 
       clearTimeout(timeout);
