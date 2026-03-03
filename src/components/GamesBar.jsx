@@ -51,8 +51,17 @@ export default function GamesBar({ onGameClick }) {
         🏀 Today's Games
       </h2>
       <div
-        className="flex gap-3 overflow-x-auto pb-2"
-        style={{ scrollbarWidth: "none" }}
+        style={{
+          display: "flex",
+          gap: "12px",
+          overflowX: "scroll",
+          paddingBottom: "8px",
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
+          WebkitOverflowScrolling: "touch",
+          cursor: "grab",
+          minWidth: 0,
+        }}
       >
         {todayGames.map((game) => (
           <GameCard
