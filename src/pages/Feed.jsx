@@ -21,6 +21,7 @@ export default function Feed({
   const [newComment, setNewComment] = useState({});
   const [error, setError] = useState("");
   const [moderatorIds, setModeratorIds] = useState(new Set());
+  const [visibleTakes, setVisibleTakes] = useState(10);
 
   const fetchModerators = async () => {
     const { data } = await supabase.from("moderators").select("user_id");
@@ -49,7 +50,7 @@ export default function Feed({
   const fetchComments = async () => {
     const { data } = await supabase
       .from("comments")
-      .select("*, profiles(avatar_url), is_shadowbanned")
+      .select("*, profiles(avatar_url, is_shadowbanned)")
       .order("created_at", { ascending: true });
     const grouped = {};
     data?.forEach((c) => {
@@ -89,22 +90,21 @@ export default function Feed({
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, []); // Comment
+  }, []);
 
   const postTake = async () => {
     if (!newTake.trim()) return;
     setLoading(true);
+    setError("");
     const allowed = await moderateContent(newTake);
     if (!allowed) {
       setError("Your take contains inappropriate content. Please revise it.");
       setLoading(false);
       return;
     }
-    await supabase.from("takes").insert({
-      content: newTake,
-      user_id: user.id,
-      username: username,
-    });
+    await supabase
+      .from("takes")
+      .insert({ content: newTake, user_id: user.id, username });
     setNewTake("");
     await fetchTakes();
     setLoading(false);
@@ -120,11 +120,9 @@ export default function Feed({
         .eq("user_id", user.id)
         .eq("emoji", emoji);
     } else {
-      await supabase.from("reactions").insert({
-        take_id: takeId,
-        user_id: user.id,
-        emoji,
-      });
+      await supabase
+        .from("reactions")
+        .insert({ take_id: takeId, user_id: user.id, emoji });
     }
     await fetchReactions();
   };
@@ -142,26 +140,18 @@ export default function Feed({
   const postComment = async (takeId) => {
     const content = newComment[takeId]?.trim();
     if (!content) return;
-    console.log("posting comment:", content);
-
     try {
       const allowed = await moderateContent(content);
-      console.log("moderation result:", allowed);
       if (!allowed) {
         setError("Your comment contains inappropriate content.");
         return;
       }
-    } catch (err) {
-      console.log("moderation error:", err);
+    } catch {
+      /* continue */
     }
-
-    const { data, error } = await supabase.from("comments").insert({
-      take_id: takeId,
-      user_id: user.id,
-      username: username,
-      content,
-    });
-    console.log("insert result:", data, error);
+    await supabase
+      .from("comments")
+      .insert({ take_id: takeId, user_id: user.id, username, content });
     setNewComment((prev) => ({ ...prev, [takeId]: "" }));
     await fetchComments();
   };
@@ -170,198 +160,365 @@ export default function Feed({
     await supabase.auth.signOut();
   };
 
-  return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="max-w-2xl mx-auto p-6">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold text-orange-500">
-            🏀 NBA Hot Takes
-          </h1>
-          <button
-            onClick={onProfileClick}
-            className="text-zinc-400 hover:text-white text-sm transition"
-          >
-            👤 Profile
-          </button>
-          <button
-            onClick={handleLogout}
-            className="text-zinc-400 hover:text-white text-sm"
-          >
-            Logout
-          </button>
-        </div>
+  const filteredTakes = takes.filter(
+    (take) => !take.profiles?.is_shadowbanned || take.user_id === user?.id,
+  );
 
-        <div className="bg-zinc-900 rounded-2xl p-4 mb-6">
-          {error && <p className="text-red-400 text-sm mb-3">{error}</p>}
-          <textarea
-            value={newTake}
-            onChange={(e) => setNewTake(e.target.value)}
-            placeholder="Drop your NBA hot take... 🔥"
-            className="w-full bg-transparent text-white placeholder-zinc-500 resize-none outline-none text-sm"
-            rows={3}
-          />
-          <GamesBar onGameClick={onGameClick} />
-          <div className="flex justify-end mt-2">
-            <button
-              onClick={postTake}
-              disabled={loading || !newTake.trim()}
-              className="bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white font-bold px-5 py-2 rounded-full text-sm transition"
+  return (
+    <div className="min-h-screen text-white" style={{ background: "#080810" }}>
+      {/* Top navbar */}
+      <div
+        className="sticky top-0 z-50 backdrop-blur-xl border-b"
+        style={{
+          background: "rgba(8,8,16,0.85)",
+          borderColor: "rgba(255,255,255,0.06)",
+        }}
+      >
+        <div className="max-w-2xl mx-auto px-6 py-4 flex items-center justify-between">
+          {/* Logo */}
+          <div className="flex items-center gap-2">
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-lg"
+              style={{
+                background: "linear-gradient(135deg, #f97316, #ef4444)",
+              }}
             >
-              {loading ? "Posting..." : "Post Take 🔥"}
+              🏀
+            </div>
+            <div>
+              <span
+                className="font-black text-lg tracking-tight"
+                style={{
+                  background: "linear-gradient(90deg, #f97316, #ef4444)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                HotTakes
+              </span>
+              <span className="text-zinc-600 text-xs ml-1 hidden sm:inline">
+                NBA
+              </span>
+            </div>
+          </div>
+
+          {/* Right side */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onProfileClick}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition cursor-pointer"
+              style={{
+                background: "rgba(249,115,22,0.1)",
+                border: "1px solid rgba(249,115,22,0.2)",
+                color: "#f97316",
+              }}
+            >
+              <div className="w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center text-xs font-bold text-white">
+                {username?.[0]?.toUpperCase()}
+              </div>
+              <span className="hidden sm:inline">@{username}</span>
+            </button>
+            <button
+              onClick={handleLogout}
+              className="px-3 py-2 rounded-xl text-sm transition cursor-pointer"
+              style={{
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                color: "#71717a",
+              }}
+            >
+              Sign out
             </button>
           </div>
         </div>
+      </div>
 
-        <div className="space-y-4">
-          {takes.length === 0 && (
-            <p className="text-zinc-500 text-center py-10">
-              No takes yet. Be the first! 🏀
-            </p>
+      <div className="max-w-2xl mx-auto px-6 py-6">
+        {/* Games bar */}
+        <GamesBar onGameClick={onGameClick} />
+
+        {/* Compose box */}
+        <div
+          className="rounded-2xl p-5 mb-6"
+          style={{
+            background: "linear-gradient(135deg, #0f0f1a 0%, #151525 100%)",
+            border: "1px solid rgba(249,115,22,0.15)",
+          }}
+        >
+          <div className="flex gap-3">
+            <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-sm font-black flex-shrink-0">
+              {username?.[0]?.toUpperCase()}
+            </div>
+            <div className="flex-1">
+              {error && (
+                <div
+                  className="mb-3 px-3 py-2 rounded-lg text-xs text-red-400"
+                  style={{
+                    background: "rgba(239,68,68,0.1)",
+                    border: "1px solid rgba(239,68,68,0.2)",
+                  }}
+                >
+                  {error}
+                </div>
+              )}
+              <textarea
+                value={newTake}
+                onChange={(e) => setNewTake(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && e.metaKey && postTake()}
+                placeholder="Drop your NBA hot take... 🔥"
+                className="w-full bg-transparent text-white placeholder-zinc-600 resize-none outline-none text-sm leading-relaxed"
+                rows={3}
+              />
+              <div
+                className="flex items-center justify-between mt-3 pt-3"
+                style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
+              >
+                <span className="text-zinc-700 text-xs">
+                  {newTake.length > 0
+                    ? `${newTake.length} chars`
+                    : "⌘ + Enter to post"}
+                </span>
+                <button
+                  onClick={postTake}
+                  disabled={loading || !newTake.trim()}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition cursor-pointer disabled:opacity-40"
+                  style={{
+                    background: "linear-gradient(135deg, #f97316, #ef4444)",
+                    color: "white",
+                  }}
+                >
+                  {loading ? "Posting..." : "Post 🔥"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Feed */}
+        <div className="space-y-3">
+          {filteredTakes.length === 0 && (
+            <div className="text-center py-16">
+              <p className="text-5xl mb-4">🏀</p>
+              <p className="text-zinc-500">No takes yet. Be the first!</p>
+            </div>
           )}
-          {takes
-            .filter(
-              (take) =>
-                !take.profiles?.is_shadowbanned || take.user_id === user?.id,
-            )
-            .map((take) => (
-              <div key={take.id} className="bg-zinc-900 rounded-2xl p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div
-                    onClick={() => onViewProfile(take.username)}
-                    className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-sm font-bold overflow-hidden cursor-pointer"
-                  >
-                    {take.profiles?.avatar_url ? (
-                      <img
-                        src={take.profiles.avatar_url}
-                        alt="avatar"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      take.username?.[0]?.toUpperCase()
-                    )}
-                  </div>
-                  <span
-                    onClick={() => onViewProfile(take.username)}
-                    className="text-zinc-400 text-sm cursor-pointer hover:text-white transition flex items-center gap-1"
-                  >
-                    @{take.username}
-                    {moderatorIds.has(take.user_id) && (
-                      <span title="Moderator">🛡️</span>
-                    )}
-                  </span>
-                  <span className="text-zinc-600 text-xs ml-auto">
-                    {new Date(take.created_at).toLocaleDateString()}
-                  </span>
-                  {take.user_id === user?.id && (
-                    <button
-                      onClick={() => deleteTake(take.id)}
-                      className="text-zinc-600 hover:text-red-400 text-xs transition"
-                    >
-                      ✕
-                    </button>
+
+          {filteredTakes.slice(0, visibleTakes).map((take, i) => (
+            <div
+              key={take.id}
+              className="rounded-2xl p-5 transition group"
+              style={{
+                background: "linear-gradient(135deg, #0d0d1a 0%, #121220 100%)",
+                border: "1px solid rgba(255,255,255,0.05)",
+                animationDelay: `${i * 30}ms`,
+              }}
+            >
+              {/* Post header */}
+              <div className="flex items-center gap-3 mb-3">
+                <div
+                  onClick={() => onViewProfile(take.username)}
+                  className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-sm font-black overflow-hidden flex-shrink-0 cursor-pointer ring-2 ring-transparent hover:ring-orange-500 transition"
+                >
+                  {take.profiles?.avatar_url ? (
+                    <img
+                      src={take.profiles.avatar_url}
+                      alt="avatar"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    take.username?.[0]?.toUpperCase()
                   )}
                 </div>
-                <p className="text-white mb-3">{take.content}</p>
-
-                {/* Reactions */}
-                <div className="flex gap-2 flex-wrap mb-3">
-                  {EMOJIS.map((emoji) => {
-                    const count = reactions[take.id]?.[emoji]?.length || 0;
-                    const reacted = reactions[take.id]?.[emoji]?.includes(
-                      user?.id,
-                    );
-                    return (
-                      <button
-                        key={emoji}
-                        onClick={() => handleReaction(take.id, emoji)}
-                        className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm transition ${
-                          reacted
-                            ? "bg-orange-500 text-white"
-                            : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
-                        }`}
-                      >
-                        {emoji} {count > 0 && <span>{count}</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Comments toggle */}
-                <button
-                  onClick={() =>
-                    setOpenComments(openComments === take.id ? null : take.id)
-                  }
-                  className="text-zinc-500 text-xs hover:text-zinc-300 transition"
-                >
-                  💬 {comments[take.id]?.length || 0} comments
-                </button>
-
-                {/* Comments section */}
-                {openComments === take.id && (
-                  <div className="mt-3 border-t border-zinc-800 pt-3 space-y-3">
-                    {comments[take.id]?.map((c) => (
-                      <div key={c.id} className="flex gap-2 items-start">
-                        <div className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center text-xs font-bold flex-shrink-0 overflow-hidden">
-                          {c.profiles?.avatar_url ? (
-                            <img
-                              src={c.profiles.avatar_url}
-                              alt="avatar"
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            c.username?.[0]?.toUpperCase()
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <span
-                            onClick={() => onViewProfile(c.username)}
-                            className="text-zinc-400 text-xs cursor-pointer hover:text-white transition"
-                          >
-                            @{c.username}
-                            {moderatorIds.has(c.user_id) ? " 🛡️" : ""}{" "}
-                          </span>
-                          <span className="text-white text-sm">
-                            {c.content}
-                          </span>
-                        </div>
-                        {c.user_id === user?.id && (
-                          <button
-                            onClick={() => deleteComment(c.id)}
-                            className="text-zinc-600 hover:text-red-400 text-xs transition"
-                          >
-                            ✕
-                          </button>
-                        )}
-                      </div>
-                    ))}
-
-                    <div className="flex gap-2 mt-2">
-                      <input
-                        type="text"
-                        value={newComment[take.id] || ""}
-                        onChange={(e) =>
-                          setNewComment((prev) => ({
-                            ...prev,
-                            [take.id]: e.target.value,
-                          }))
-                        }
-                        onKeyDown={(e) =>
-                          e.key === "Enter" && postComment(take.id)
-                        }
-                        placeholder="Add a comment..."
-                        className="flex-1 bg-zinc-800 text-white text-sm px-3 py-2 rounded-full outline-none focus:ring-2 focus:ring-orange-500"
-                      />
-                      <button
-                        onClick={() => postComment(take.id)}
-                        className="bg-orange-500 hover:bg-orange-600 text-white text-sm px-4 py-2 rounded-full transition"
-                      >
-                        Post
-                      </button>
-                    </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      onClick={() => onViewProfile(take.username)}
+                      className="text-sm font-semibold text-white cursor-pointer hover:text-orange-400 transition truncate"
+                    >
+                      @{take.username}
+                    </span>
+                    {moderatorIds.has(take.user_id) && (
+                      <span title="Moderator" className="text-xs">
+                        🛡️
+                      </span>
+                    )}
                   </div>
+                  <span className="text-zinc-600 text-xs">
+                    {new Date(take.created_at).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
+                </div>
+                {take.user_id === user?.id && (
+                  <button
+                    onClick={() => deleteTake(take.id)}
+                    className="opacity-0 group-hover:opacity-100 text-zinc-700 hover:text-red-400 text-xs transition cursor-pointer px-2 py-1 rounded-lg hover:bg-red-500/10"
+                  >
+                    ✕
+                  </button>
                 )}
               </div>
-            ))}
+
+              {/* Content */}
+              <p
+                className="text-white text-sm leading-relaxed mb-4"
+                style={{ lineHeight: "1.6" }}
+              >
+                {take.content}
+              </p>
+
+              {/* Reactions */}
+              <div className="flex items-center gap-1.5 flex-wrap mb-3">
+                {EMOJIS.map((emoji) => {
+                  const count = reactions[take.id]?.[emoji]?.length || 0;
+                  const reacted = reactions[take.id]?.[emoji]?.includes(
+                    user?.id,
+                  );
+                  return (
+                    <button
+                      key={emoji}
+                      onClick={() => handleReaction(take.id, emoji)}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs transition cursor-pointer"
+                      style={{
+                        background: reacted
+                          ? "rgba(249,115,22,0.2)"
+                          : "rgba(255,255,255,0.04)",
+                        border: reacted
+                          ? "1px solid rgba(249,115,22,0.4)"
+                          : "1px solid rgba(255,255,255,0.06)",
+                        color: reacted ? "#f97316" : "#71717a",
+                      }}
+                    >
+                      {emoji}{" "}
+                      {count > 0 && (
+                        <span className="font-medium">{count}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Comments toggle */}
+              <button
+                onClick={() =>
+                  setOpenComments(openComments === take.id ? null : take.id)
+                }
+                className="flex items-center gap-1.5 text-zinc-600 hover:text-zinc-300 text-xs transition cursor-pointer"
+              >
+                <span>💬</span>
+                <span>
+                  {comments[take.id]?.length || 0}{" "}
+                  {comments[take.id]?.length === 1 ? "comment" : "comments"}
+                </span>
+              </button>
+
+              {/* Comments section */}
+              {openComments === take.id && (
+                <div
+                  className="mt-4 space-y-3"
+                  style={{
+                    borderTop: "1px solid rgba(255,255,255,0.05)",
+                    paddingTop: "1rem",
+                  }}
+                >
+                  {comments[take.id]?.map((c) => (
+                    <div
+                      key={c.id}
+                      className="flex gap-2.5 items-start group/comment"
+                    >
+                      <div
+                        onClick={() => onViewProfile(c.username)}
+                        className="w-7 h-7 rounded-full bg-orange-500 flex items-center justify-center text-xs font-black flex-shrink-0 overflow-hidden cursor-pointer"
+                      >
+                        {c.profiles?.avatar_url ? (
+                          <img
+                            src={c.profiles.avatar_url}
+                            alt="avatar"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          c.username?.[0]?.toUpperCase()
+                        )}
+                      </div>
+                      <div
+                        className="flex-1 min-w-0 rounded-xl px-3 py-2"
+                        style={{ background: "rgba(255,255,255,0.04)" }}
+                      >
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span
+                            onClick={() => onViewProfile(c.username)}
+                            className="text-xs font-semibold text-zinc-300 cursor-pointer hover:text-orange-400 transition"
+                          >
+                            @{c.username}
+                          </span>
+                          {moderatorIds.has(c.user_id) && (
+                            <span className="text-xs">🛡️</span>
+                          )}
+                        </div>
+                        <span className="text-white text-xs leading-relaxed">
+                          {c.content}
+                        </span>
+                      </div>
+                      {c.user_id === user?.id && (
+                        <button
+                          onClick={() => deleteComment(c.id)}
+                          className="opacity-0 group-hover/comment:opacity-100 text-zinc-700 hover:text-red-400 text-xs transition cursor-pointer mt-1"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  ))}
+
+                  <div className="flex gap-2 mt-2">
+                    <input
+                      type="text"
+                      value={newComment[take.id] || ""}
+                      onChange={(e) =>
+                        setNewComment((prev) => ({
+                          ...prev,
+                          [take.id]: e.target.value,
+                        }))
+                      }
+                      onKeyDown={(e) =>
+                        e.key === "Enter" && postComment(take.id)
+                      }
+                      placeholder="Add a comment..."
+                      className="flex-1 text-white text-xs px-3 py-2 rounded-xl outline-none transition"
+                      style={{
+                        background: "rgba(255,255,255,0.06)",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                      }}
+                    />
+                    <button
+                      onClick={() => postComment(take.id)}
+                      className="px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer"
+                      style={{
+                        background: "linear-gradient(135deg, #f97316, #ef4444)",
+                        color: "white",
+                      }}
+                    >
+                      Post
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+          {filteredTakes.length > visibleTakes && (
+            <button
+              onClick={() => setVisibleTakes((v) => v + 10)}
+              className="w-full py-3 rounded-xl text-sm font-medium transition cursor-pointer"
+              style={{
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                color: "#71717a",
+              }}
+            >
+              Load more ({filteredTakes.length - visibleTakes} remaining)
+            </button>
+          )}
         </div>
       </div>
     </div>
