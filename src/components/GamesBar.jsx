@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
 export default function GamesBar({ onGameClick }) {
   const [games, setGames] = useState([]);
@@ -30,27 +30,6 @@ export default function GamesBar({ onGameClick }) {
     return gameDate === today || gameDate === tomorrow;
   });
 
-  const scrollRef = useRef(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
-
-  const onMouseDown = (e) => {
-    setIsDragging(true);
-    setStartX(e.pageX - scrollRef.current.offsetLeft);
-    setScrollLeft(scrollRef.current.scrollLeft);
-  };
-
-  const onMouseMove = (e) => {
-    if (!isDragging) return;
-    e.preventDefault();
-    const x = e.pageX - scrollRef.current.offsetLeft;
-    const walk = (x - startX) * 1.5;
-    scrollRef.current.scrollLeft = scrollLeft - walk;
-  };
-
-  const onMouseUp = () => setIsDragging(false);
-
   if (loading)
     return (
       <div
@@ -71,23 +50,17 @@ export default function GamesBar({ onGameClick }) {
       <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">
         🏀 Today's Games
       </h2>
+
+      {/* Scrollable container with visible scrollbar */}
       <div
-        ref={scrollRef}
-        onMouseDown={onMouseDown}
-        onMouseMove={onMouseMove}
-        onMouseUp={onMouseUp}
-        onMouseLeave={onMouseUp}
         style={{
           display: "flex",
           gap: "12px",
-          overflowX: "scroll",
-          paddingBottom: "8px",
-          scrollbarWidth: "none",
-          msOverflowStyle: "none",
+          overflowX: "auto",
+          paddingBottom: "12px",
           WebkitOverflowScrolling: "touch",
-          cursor: isDragging ? "grabbing" : "grab",
-          minWidth: 0,
-          userSelect: "none",
+          scrollbarColor: "#f97316 #1c1c1e",
+          scrollbarWidth: "thin",
         }}
       >
         {todayGames.map((game) => (
@@ -98,6 +71,20 @@ export default function GamesBar({ onGameClick }) {
           />
         ))}
       </div>
+
+      <style>{`
+        .games-scroll::-webkit-scrollbar {
+          height: 6px;
+        }
+        .games-scroll::-webkit-scrollbar-track {
+          background: #1c1c1e;
+          border-radius: 999px;
+        }
+        .games-scroll::-webkit-scrollbar-thumb {
+          background: #f97316;
+          border-radius: 999px;
+        }
+      `}</style>
     </div>
   );
 }
