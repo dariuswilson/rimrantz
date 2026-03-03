@@ -54,6 +54,7 @@ export default function ViewProfile({
   const [issuingStrike, setIssuingStrike] = useState(false);
   const [isShadowbanned, setIsShadowbanned] = useState(false);
   const [isProfileMod, setIsProfileMod] = useState(false);
+  const [gameTakes, setGameTakes] = useState([]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -95,6 +96,13 @@ export default function ViewProfile({
           .eq("user_id", profileData.user_id);
         setBadges(badgeData || []);
       }
+
+      const { data: gameData } = await supabase
+        .from("game_takes")
+        .select("*")
+        .eq("user_id", profileData.user_id)
+        .order("created_at", { ascending: false });
+      setGameTakes(gameData || []);
 
       setLoading(false);
     };
@@ -468,6 +476,52 @@ export default function ViewProfile({
                 remaining)
               </button>
             )}
+          </div>
+        )}
+
+        {/* Game Posts */}
+        <button
+          onClick={() => setActiveTab("game")}
+          className="flex-1 py-2 rounded-lg text-sm font-medium transition"
+          style={{
+            background: activeTab === "game" ? "#f97316" : "transparent",
+            color: activeTab === "game" ? "white" : "#71717a",
+          }}
+        >
+          Game Posts ({gameTakes.length})
+        </button>
+
+        {activeTab === "game" && (
+          <div className="space-y-3">
+            {gameTakes.length === 0 && (
+              <div className="text-center py-12 text-zinc-600">
+                <p className="text-4xl mb-3">🏀</p>
+                <p>No game posts yet!</p>
+              </div>
+            )}
+            {gameTakes.map((take) => (
+              <div
+                key={take.id}
+                className="rounded-2xl p-4"
+                style={{
+                  background:
+                    "linear-gradient(135deg, #1c1c1e 0%, #2a2a2e 100%)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                }}
+              >
+                <p className="text-xs text-zinc-500 mb-2">🏀 Game post</p>
+                <p className="text-white text-sm leading-relaxed">
+                  {take.content}
+                </p>
+                <p className="text-zinc-600 text-xs mt-3">
+                  {new Date(take.created_at).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </p>
+              </div>
+            ))}
           </div>
         )}
       </div>
