@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export default function GamesBar({ onGameClick }) {
   const [games, setGames] = useState([]);
@@ -30,6 +30,27 @@ export default function GamesBar({ onGameClick }) {
     return gameDate === today || gameDate === tomorrow;
   });
 
+  const scrollRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+
+  const onMouseDown = (e) => {
+    setIsDragging(true);
+    setStartX(e.pageX - scrollRef.current.offsetLeft);
+    setScrollLeft(scrollRef.current.scrollLeft);
+  };
+
+  const onMouseMove = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    scrollRef.current.scrollLeft = scrollLeft - walk;
+  };
+
+  const onMouseUp = () => setIsDragging(false);
+
   if (loading)
     return (
       <div
@@ -51,6 +72,11 @@ export default function GamesBar({ onGameClick }) {
         🏀 Today's Games
       </h2>
       <div
+        ref={scrollRef}
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseUp={onMouseUp}
+        onMouseLeave={onMouseUp}
         style={{
           display: "flex",
           gap: "12px",
@@ -59,8 +85,9 @@ export default function GamesBar({ onGameClick }) {
           scrollbarWidth: "none",
           msOverflowStyle: "none",
           WebkitOverflowScrolling: "touch",
-          cursor: "grab",
+          cursor: isDragging ? "grabbing" : "grab",
           minWidth: 0,
+          userSelect: "none",
         }}
       >
         {todayGames.map((game) => (
