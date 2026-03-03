@@ -36,7 +36,12 @@ const NBA_TEAMS = [
 
 const POSTS_PER_PAGE = 10;
 
-export default function ViewProfile({ username, onBack }) {
+export default function ViewProfile({
+  username,
+  currentUser,
+  isModerator,
+  onBack,
+}) {
   const [profile, setProfile] = useState(null);
   const [takes, setTakes] = useState([]);
   const [comments, setComments] = useState([]);
@@ -45,6 +50,10 @@ export default function ViewProfile({ username, onBack }) {
   const [activeTab, setActiveTab] = useState("posts");
   const [visiblePosts, setVisiblePosts] = useState(POSTS_PER_PAGE);
   const [visibleComments, setVisibleComments] = useState(POSTS_PER_PAGE);
+  const [strikeCount, setStrikeCount] = useState(0);
+  const [issuingStrike, setIssuingStrike] = useState(false);
+  const [isShadowbanned, setIsShadowbanned] = useState(false);
+  const [isProfileMod, setIsProfileMod] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -55,6 +64,15 @@ export default function ViewProfile({ username, onBack }) {
         .single();
 
       setProfile(profileData);
+      setStrikeCount(profileData?.strike_count || 0);
+      setIsShadowbanned(profileData?.is_shadowbanned || false);
+
+      const { data: modCheck } = await supabase
+        .from("moderators")
+        .select("user_id")
+        .eq("user_id", profileData.user_id)
+        .maybeSingle();
+      setIsProfileMod(!!modCheck);
 
       if (profileData) {
         const { data: takesData } = await supabase
@@ -83,6 +101,26 @@ export default function ViewProfile({ username, onBack }) {
 
     loadData();
   }, [username]);
+
+  const issueStrike = async () => {
+    if (!profile) return;
+    setIssuingStrike(true);
+
+    const newCount = strikeCount + 1;
+    const shouldBan = newCount >= 3;
+
+    await supabase
+      .from("profiles")
+      .update({
+        strike_count: newCount,
+        is_shadowbanned: shouldBan,
+      })
+      .eq("user_id", profile.user_id);
+
+    setStrikeCount(newCount);
+    setIsShadowbanned(shouldBan);
+    setIssuingStrike(false);
+  };
 
   if (loading)
     return (
@@ -142,7 +180,15 @@ export default function ViewProfile({ username, onBack }) {
 
             {/* Name & team */}
             <div className="mb-3">
-              <h2 className="text-xl font-bold">@{username}</h2>
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                @{username}
+                {isProfileMod && <span title="Moderator">🛡️</span>}
+                {isShadowbanned && isModerator && (
+                  <span className="text-xs text-red-400 font-normal">
+                    shadowbanned
+                  </span>
+                )}
+              </h2>
               {profile?.favorite_team && (
                 <div className="flex items-center gap-2 mt-1">
                   <img
@@ -185,6 +231,83 @@ export default function ViewProfile({ username, onBack }) {
             </div>
           </div>
         </div>
+
+        {/* Mod Panel */}
+        {isModerator && currentUser?.id !== profile?.user_id && (
+          <div
+            className="rounded-2xl p-5 mb-6"
+            style={{
+              background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)",
+              border: "1px solid rgba(99,102,241,0.3)",
+            }}
+          >
+            <h3 className="text-sm font-semibold text-indigo-400 uppercase tracking-wider mb-4">
+              🛡️ Moderator Panel
+            </h3>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex gap-1">
+                {[1, 2, 3].map((n) => (
+                  <div
+                    key={n}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                    style={{
+                      background:
+                        n <= strikeCount ? "#ef4444" : "rgba(255,255,255,0.1)",
+                    }}
+                  >
+                    {n <= strikeCount ? "✕" : n}
+                  </div>
+                ))}
+              </div>
+              <div>
+                <p className="text-white text-sm font-medium">
+                  {strikeCount}/3 strikes
+                </p>
+                {isShadowbanned && (
+                  <p className="text-red-400 text-xs">
+                    ⚠️ User is shadowbanned
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={issueStrike}
+                disabled={issuingStrike || strikeCount >= 3}
+                className="flex-1 py-2 rounded-xl text-sm font-medium transition disabled:opacity-40"
+                style={{
+                  background: "rgba(239,68,68,0.15)",
+                  border: "1px solid rgba(239,68,68,0.3)",
+                  color: "#ef4444",
+                }}
+              >
+                {issuingStrike ? "Issuing..." : "⚠️ Issue Ban Strike"}
+              </button>
+              {isShadowbanned && (
+                <button
+                  onClick={async () => {
+                    await supabase
+                      .from("profiles")
+                      .update({ strike_count: 0, is_shadowbanned: false })
+                      .eq("user_id", profile.user_id);
+                    setStrikeCount(0);
+                    setIsShadowbanned(false);
+                  }}
+                  className="flex-1 py-2 rounded-xl text-sm font-medium transition"
+                  style={{
+                    background: "rgba(34,197,94,0.15)",
+                    border: "1px solid rgba(34,197,94,0.3)",
+                    color: "#22c55e",
+                  }}
+                >
+                  ✓ Remove Shadowban
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Badges */}
         {badges.length > 0 && (

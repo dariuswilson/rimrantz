@@ -12,6 +12,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState("feed");
   const [viewingUsername, setViewingUsername] = useState(null);
+  const [isModerator, setIsModerator] = useState(false);
 
   const fetchUsername = async (userId) => {
     try {
@@ -64,6 +65,12 @@ export default function App() {
         setSession(session);
         const name = await fetchUsername(session.user.id);
         setUsername(name);
+        const { data: modData } = await supabase
+          .from("moderators")
+          .select("user_id")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+        setIsModerator(!!modData);
       } catch (_err) {
         console.log("init error:", _err);
       }
@@ -107,6 +114,7 @@ export default function App() {
       <Profile
         username={username}
         user={session.user}
+        isModerator={isModerator}
         onBack={() => setPage("feed")}
       />
     );
@@ -115,6 +123,7 @@ export default function App() {
       <ViewProfile
         username={viewingUsername}
         currentUser={session.user}
+        isModerator={isModerator}
         onBack={() => setPage("feed")}
       />
     );
@@ -122,6 +131,7 @@ export default function App() {
     <Feed
       username={username}
       user={session.user}
+      isModerator={isModerator}
       onProfileClick={() => setPage("profile")}
       onViewProfile={(u) => {
         setViewingUsername(u);

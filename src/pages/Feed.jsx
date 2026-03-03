@@ -18,13 +18,18 @@ export default function Feed({
   const [openComments, setOpenComments] = useState(null);
   const [newComment, setNewComment] = useState({});
   const [error, setError] = useState("");
+  const [moderatorIds, setModeratorIds] = useState(new Set());
+
+  const fetchModerators = async () => {
+    const { data } = await supabase.from("moderators").select("user_id");
+    setModeratorIds(new Set(data?.map((m) => m.user_id) || []));
+  };
 
   const fetchTakes = async () => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("takes")
-      .select("*, profiles(avatar_url)")
+      .select("*, profiles(avatar_url, is_shadowbanned)")
       .order("created_at", { ascending: false });
-    console.log("takes:", data, "error:", error);
     setTakes(data || []);
   };
 
@@ -57,6 +62,7 @@ export default function Feed({
       await fetchTakes();
       await fetchReactions();
       await fetchComments();
+      await fetchModerators();
     };
     loadData();
 
@@ -208,139 +214,150 @@ export default function Feed({
               No takes yet. Be the first! 🏀
             </p>
           )}
-          {takes.map((take) => (
-            <div key={take.id} className="bg-zinc-900 rounded-2xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div
-                  onClick={() => onViewProfile(take.username)}
-                  className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-sm font-bold overflow-hidden cursor-pointer"
-                >
-                  {take.profiles?.avatar_url ? (
-                    <img
-                      src={take.profiles.avatar_url}
-                      alt="avatar"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    take.username?.[0]?.toUpperCase()
+          {takes
+            .filter(
+              (take) =>
+                !take.profiles?.is_shadowbanned || take.user_id === user?.id,
+            )
+            .map((take) => (
+              <div key={take.id} className="bg-zinc-900 rounded-2xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div
+                    onClick={() => onViewProfile(take.username)}
+                    className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-sm font-bold overflow-hidden cursor-pointer"
+                  >
+                    {take.profiles?.avatar_url ? (
+                      <img
+                        src={take.profiles.avatar_url}
+                        alt="avatar"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      take.username?.[0]?.toUpperCase()
+                    )}
+                  </div>
+                  <span
+                    onClick={() => onViewProfile(take.username)}
+                    className="text-zinc-400 text-sm cursor-pointer hover:text-white transition flex items-center gap-1"
+                  >
+                    @{take.username}
+                    {moderatorIds.has(take.user_id) && (
+                      <span title="Moderator">🛡️</span>
+                    )}
+                  </span>
+                  <span className="text-zinc-600 text-xs ml-auto">
+                    {new Date(take.created_at).toLocaleDateString()}
+                  </span>
+                  {take.user_id === user?.id && (
+                    <button
+                      onClick={() => deleteTake(take.id)}
+                      className="text-zinc-600 hover:text-red-400 text-xs transition"
+                    >
+                      ✕
+                    </button>
                   )}
                 </div>
-                <span
-                  onClick={() => onViewProfile(take.username)}
-                  className="text-zinc-400 text-sm cursor-pointer hover:text-white transition"
+                <p className="text-white mb-3">{take.content}</p>
+
+                {/* Reactions */}
+                <div className="flex gap-2 flex-wrap mb-3">
+                  {EMOJIS.map((emoji) => {
+                    const count = reactions[take.id]?.[emoji]?.length || 0;
+                    const reacted = reactions[take.id]?.[emoji]?.includes(
+                      user?.id,
+                    );
+                    return (
+                      <button
+                        key={emoji}
+                        onClick={() => handleReaction(take.id, emoji)}
+                        className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm transition ${
+                          reacted
+                            ? "bg-orange-500 text-white"
+                            : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                        }`}
+                      >
+                        {emoji} {count > 0 && <span>{count}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Comments toggle */}
+                <button
+                  onClick={() =>
+                    setOpenComments(openComments === take.id ? null : take.id)
+                  }
+                  className="text-zinc-500 text-xs hover:text-zinc-300 transition"
                 >
-                  @{take.username}
-                </span>
-                <span className="text-zinc-600 text-xs ml-auto">
-                  {new Date(take.created_at).toLocaleDateString()}
-                </span>
-                {take.user_id === user?.id && (
-                  <button
-                    onClick={() => deleteTake(take.id)}
-                    className="text-zinc-600 hover:text-red-400 text-xs transition"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-              <p className="text-white mb-3">{take.content}</p>
+                  💬 {comments[take.id]?.length || 0} comments
+                </button>
 
-              {/* Reactions */}
-              <div className="flex gap-2 flex-wrap mb-3">
-                {EMOJIS.map((emoji) => {
-                  const count = reactions[take.id]?.[emoji]?.length || 0;
-                  const reacted = reactions[take.id]?.[emoji]?.includes(
-                    user?.id,
-                  );
-                  return (
-                    <button
-                      key={emoji}
-                      onClick={() => handleReaction(take.id, emoji)}
-                      className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm transition ${
-                        reacted
-                          ? "bg-orange-500 text-white"
-                          : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
-                      }`}
-                    >
-                      {emoji} {count > 0 && <span>{count}</span>}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Comments toggle */}
-              <button
-                onClick={() =>
-                  setOpenComments(openComments === take.id ? null : take.id)
-                }
-                className="text-zinc-500 text-xs hover:text-zinc-300 transition"
-              >
-                💬 {comments[take.id]?.length || 0} comments
-              </button>
-
-              {/* Comments section */}
-              {openComments === take.id && (
-                <div className="mt-3 border-t border-zinc-800 pt-3 space-y-3">
-                  {comments[take.id]?.map((c) => (
-                    <div key={c.id} className="flex gap-2 items-start">
-                      <div className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center text-xs font-bold flex-shrink-0 overflow-hidden">
-                        {c.profiles?.avatar_url ? (
-                          <img
-                            src={c.profiles.avatar_url}
-                            alt="avatar"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          c.username?.[0]?.toUpperCase()
+                {/* Comments section */}
+                {openComments === take.id && (
+                  <div className="mt-3 border-t border-zinc-800 pt-3 space-y-3">
+                    {comments[take.id]?.map((c) => (
+                      <div key={c.id} className="flex gap-2 items-start">
+                        <div className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center text-xs font-bold flex-shrink-0 overflow-hidden">
+                          {c.profiles?.avatar_url ? (
+                            <img
+                              src={c.profiles.avatar_url}
+                              alt="avatar"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            c.username?.[0]?.toUpperCase()
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <span
+                            onClick={() => onViewProfile(c.username)}
+                            className="text-zinc-400 text-xs cursor-pointer hover:text-white transition"
+                          >
+                            @{c.username}
+                            {moderatorIds.has(c.user_id) ? " 🛡️" : ""}{" "}
+                          </span>
+                          <span className="text-white text-sm">
+                            {c.content}
+                          </span>
+                        </div>
+                        {c.user_id === user?.id && (
+                          <button
+                            onClick={() => deleteComment(c.id)}
+                            className="text-zinc-600 hover:text-red-400 text-xs transition"
+                          >
+                            ✕
+                          </button>
                         )}
                       </div>
-                      <div className="flex-1">
-                        <span
-                          onClick={() => onViewProfile(c.username)}
-                          className="text-zinc-400 text-xs cursor-pointer hover:text-white transition"
-                        >
-                          @{c.username}{" "}
-                        </span>
-                        <span className="text-white text-sm">{c.content}</span>
-                      </div>
-                      {c.user_id === user?.id && (
-                        <button
-                          onClick={() => deleteComment(c.id)}
-                          className="text-zinc-600 hover:text-red-400 text-xs transition"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                    ))}
 
-                  <div className="flex gap-2 mt-2">
-                    <input
-                      type="text"
-                      value={newComment[take.id] || ""}
-                      onChange={(e) =>
-                        setNewComment((prev) => ({
-                          ...prev,
-                          [take.id]: e.target.value,
-                        }))
-                      }
-                      onKeyDown={(e) =>
-                        e.key === "Enter" && postComment(take.id)
-                      }
-                      placeholder="Add a comment..."
-                      className="flex-1 bg-zinc-800 text-white text-sm px-3 py-2 rounded-full outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                    <button
-                      onClick={() => postComment(take.id)}
-                      className="bg-orange-500 hover:bg-orange-600 text-white text-sm px-4 py-2 rounded-full transition"
-                    >
-                      Post
-                    </button>
+                    <div className="flex gap-2 mt-2">
+                      <input
+                        type="text"
+                        value={newComment[take.id] || ""}
+                        onChange={(e) =>
+                          setNewComment((prev) => ({
+                            ...prev,
+                            [take.id]: e.target.value,
+                          }))
+                        }
+                        onKeyDown={(e) =>
+                          e.key === "Enter" && postComment(take.id)
+                        }
+                        placeholder="Add a comment..."
+                        className="flex-1 bg-zinc-800 text-white text-sm px-3 py-2 rounded-full outline-none focus:ring-2 focus:ring-orange-500"
+                      />
+                      <button
+                        onClick={() => postComment(take.id)}
+                        className="bg-orange-500 hover:bg-orange-600 text-white text-sm px-4 py-2 rounded-full transition"
+                      >
+                        Post
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          ))}
+                )}
+              </div>
+            ))}
         </div>
       </div>
     </div>

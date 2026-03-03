@@ -36,7 +36,7 @@ const NBA_TEAMS = [
 
 const POSTS_PER_PAGE = 10;
 
-export default function Profile({ username, user, onBack }) {
+export default function Profile({ username, user, isModerator, onBack }) {
   const [profile, setProfile] = useState(null);
   const [takes, setTakes] = useState([]);
   const [comments, setComments] = useState([]);
@@ -211,7 +211,10 @@ export default function Profile({ username, user, onBack }) {
 
             {/* Name & team */}
             <div className="mb-3">
-              <h2 className="text-xl font-bold">@{username}</h2>
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                @{username}
+                {isModerator && <span title="Moderator">🛡️</span>}
+              </h2>
               {profile?.favorite_team && (
                 <div className="flex items-center gap-2 mt-1">
                   <img
