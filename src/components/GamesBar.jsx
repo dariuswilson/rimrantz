@@ -30,18 +30,10 @@ export default function GamesBar({
     return () => clearInterval(interval);
   }, []);
 
-  const today = new Date().toDateString();
-  const tomorrow = new Date(new Date().getTime() + 86400000).toDateString();
-
-  const todayGames = games
-    .filter((g) => {
-      const gameDate = new Date(g.start_time).toDateString();
-      return gameDate === today || gameDate === tomorrow;
-    })
-    .sort((a, b) => {
-      const order = { inprogress: 0, scheduled: 1, closed: 2 };
-      return (order[a.status] ?? 1) - (order[b.status] ?? 1);
-    });
+  const todayGames = games.sort((a, b) => {
+    const order = { inprogress: 0, scheduled: 1, closed: 2 };
+    return (order[a.status] ?? 1) - (order[b.status] ?? 1);
+  });
 
   const handleBetConfirm = async (amount, odds, payout) => {
     if (!betTarget || !user) return;
@@ -74,7 +66,18 @@ export default function GamesBar({
       </div>
     );
 
-  if (todayGames.length === 0) return null;
+  if (todayGames.length === 0 && games.length === 0)
+    return (
+      <div
+        className="mb-6 rounded-2xl p-4"
+        style={{
+          background: "linear-gradient(135deg, #1c1c1e 0%, #2a2a2e 100%)",
+          border: "1px solid rgba(255,255,255,0.06)",
+        }}
+      >
+        <p className="text-zinc-500 text-sm">No games today.</p>
+      </div>
+    );
 
   return (
     <>
