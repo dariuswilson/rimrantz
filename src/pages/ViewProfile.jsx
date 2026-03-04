@@ -43,6 +43,7 @@ export default function ViewProfile({
   currentUser,
   isModerator,
   onBack,
+  onViewProfile,
 }) {
   const [profile, setProfile] = useState(null);
   const [takes, setTakes] = useState([]);
@@ -145,16 +146,29 @@ export default function ViewProfile({
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
+      <Navbar
+        username={username}
+        avatarUrl={profile?.avatar_url}
+        userBucks={profile?.nba_bucks}
+        onProfileClick={() => {}}
+        onLogout={async () => {
+          await supabase.auth.signOut();
+        }}
+        onViewProfile={(u) => onViewProfile?.(u)}
+      />
       <div className="max-w-2xl mx-auto p-6">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 text-zinc-400 hover:text-white transition text-sm"
-          >
-            ← Back
-          </button>
-        </div>
+        {/* Back button */}
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition cursor-pointer mb-6"
+          style={{
+            background: "rgba(255,255,255,0.05)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            color: "#71717a",
+          }}
+        >
+          ← Back
+        </button>
 
         {/* Profile card */}
         <div
