@@ -41,7 +41,6 @@ export default function Messages({
       return;
     }
 
-    // Group by conversation partner
     const convMap = {};
     data.forEach((msg) => {
       const partnerId =
@@ -54,12 +53,25 @@ export default function Messages({
           username: partnerUsername,
           lastMessage: msg,
           unread: 0,
+          avatar_url: null,
         };
       }
       if (msg.receiver_id === user.id && !msg.read) {
         convMap[partnerId].unread++;
       }
     });
+
+    // Fetch avatars for all partners
+    const partnerIds = Object.keys(convMap);
+    if (partnerIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, avatar_url")
+        .in("user_id", partnerIds);
+      profiles?.forEach((p) => {
+        if (convMap[p.user_id]) convMap[p.user_id].avatar_url = p.avatar_url;
+      });
+    }
 
     setConversations(Object.values(convMap));
     setLoading(false);
@@ -202,8 +214,16 @@ export default function Messages({
                     borderBottom: "1px solid rgba(255,255,255,0.04)",
                   }}
                 >
-                  <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-sm font-black flex-shrink-0">
-                    {convo.username?.[0]?.toUpperCase()}
+                  <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-sm font-black flex-shrink-0 overflow-hidden">
+                    {convo.avatar_url ? (
+                      <img
+                        src={convo.avatar_url}
+                        alt="avatar"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      convo.username?.[0]?.toUpperCase()
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
@@ -252,8 +272,16 @@ export default function Messages({
                   className="flex items-center gap-3 p-4 border-b"
                   style={{ borderColor: "rgba(255,255,255,0.06)" }}
                 >
-                  <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-sm font-black">
-                    {activeConvo.username?.[0]?.toUpperCase()}
+                  <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-sm font-black overflow-hidden">
+                    {activeConvo.avatar_url ? (
+                      <img
+                        src={activeConvo.avatar_url}
+                        alt="avatar"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      activeConvo.username?.[0]?.toUpperCase()
+                    )}
                   </div>
                   <div>
                     <p
