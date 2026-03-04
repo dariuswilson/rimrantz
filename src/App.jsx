@@ -132,6 +132,7 @@ export default function App() {
         isModerator={isModerator}
         userBucks={userBucks}
         onBack={() => setPage("feed")}
+        onProfileClick={() => setPage("profile")}
         onViewProfile={(u) => {
           setViewingUsername(u);
           setPage("viewProfile");
