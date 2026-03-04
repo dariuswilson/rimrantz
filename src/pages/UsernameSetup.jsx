@@ -5,12 +5,12 @@ import { supabase } from "../supabase";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-const headers = {
-  apikey: SUPABASE_KEY,
-  Authorization: `Bearer ${SUPABASE_KEY}`,
-  "Content-Type": "application/json",
-  Prefer: "return=minimal",
-};
+// const headers = {
+//   apikey: SUPABASE_KEY,
+//   Authorization: `Bearer ${SUPABASE_KEY}`,
+//   "Content-Type": "application/json",
+//   Prefer: "return=minimal",
+// };
 
 export default function UsernameSetup({ user, onComplete }) {
   const [username, setUsername] = useState("");
@@ -89,7 +89,7 @@ export default function UsernameSetup({ user, onComplete }) {
       }
 
       onComplete(username);
-    } catch (_err) {
+    } catch {
       setError("Something went wrong, please try again");
     }
 
@@ -110,7 +110,7 @@ export default function UsernameSetup({ user, onComplete }) {
             type="text"
             placeholder="yourname"
             value={username}
-            onChange={(e) => setUsername(e.target.value.toLowerCase())}
+            onChange={(e) => setUsername(e.target.value())}
             onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
             className="flex-1 bg-transparent text-white p-3 outline-none"
           />
