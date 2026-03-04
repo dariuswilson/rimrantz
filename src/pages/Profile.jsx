@@ -553,7 +553,7 @@ export default function Profile({
                 style={{ background: "rgba(88,101,242,0.2)" }}
               >
                 <img
-                  src="https://cdn.prod.website-files.com/6257adef93867e50d84d30e2/636e0a6ca814282eca7172c6_icon_clyde_white_RGB.png"
+                  src="https://i.redd.it/pqmnfqugofe71.jpg"
                   className="w-5 h-5"
                 />
               </div>
