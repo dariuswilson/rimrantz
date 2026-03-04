@@ -320,9 +320,11 @@ export default function Feed({
                       )}
                     </div>
                     <span className="text-zinc-600 text-xs">
-                      {new Date(take.created_at).toLocaleDateString("en-US", {
+                      {new Date(take.created_at).toLocaleString("en-US", {
                         month: "short",
                         day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
                       })}
                     </span>
                   </div>

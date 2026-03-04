@@ -535,9 +535,11 @@ export default function GameFeed({
                     )}
                   </div>
                   <span className="text-zinc-600 text-xs">
-                    {new Date(post.created_at).toLocaleDateString("en-US", {
+                    {new Date(post.created_at).toLocaleString("en-US", {
                       month: "short",
                       day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
                     })}
                   </span>
                 </div>

@@ -692,10 +692,11 @@ export default function Profile({
                   {take.content}
                 </p>
                 <p className="text-zinc-600 text-xs mt-3">
-                  {new Date(take.created_at).toLocaleDateString("en-US", {
+                  {new Date(take.created_at).toLocaleString("en-US", {
                     month: "short",
                     day: "numeric",
-                    year: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
                   })}
                 </p>
               </div>
@@ -747,10 +748,11 @@ export default function Profile({
                   {comment.content}
                 </p>
                 <p className="text-zinc-600 text-xs mt-3">
-                  {new Date(comment.created_at).toLocaleDateString("en-US", {
+                  {new Date(comment.created_at).toLocaleString("en-US", {
                     month: "short",
                     day: "numeric",
-                    year: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
                   })}
                 </p>
               </div>
@@ -793,10 +795,11 @@ export default function Profile({
                   {take.content}
                 </p>
                 <p className="text-zinc-600 text-xs mt-3">
-                  {new Date(take.created_at).toLocaleDateString("en-US", {
+                  {new Date(take.created_at).toLocaleString("en-US", {
                     month: "short",
                     day: "numeric",
-                    year: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
                   })}
                 </p>
               </div>
