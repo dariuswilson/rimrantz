@@ -136,6 +136,7 @@ export default function App() {
           setViewingUsername(u);
           setPage("viewProfile");
         }}
+        onMessagesClick={() => setPage("messages")}
       />
     );
   if (page === "viewProfile")
@@ -153,6 +154,7 @@ export default function App() {
           setActiveConvo(target);
           setPage("messages");
         }}
+        onMessagesClick={() => setPage("messages")}
       />
     );
   if (page === "gameFeed")
@@ -170,6 +172,7 @@ export default function App() {
           setViewingUsername(u);
           setPage("viewProfile");
         }}
+        onMessagesClick={() => setPage("messages")}
       />
     );
   if (page === "messages")
@@ -178,6 +181,7 @@ export default function App() {
         user={session.user}
         username={username}
         userBucks={userBucks}
+        initialConvo={activeConvo}
         onProfileClick={() => setPage("profile")}
         onLogout={() => supabase.auth.signOut()}
         onMessagesClick={() => setPage("messages")}
@@ -205,6 +209,7 @@ export default function App() {
         setViewingGame(g);
         setPage("gameFeed");
       }}
+      onMessagesClick={() => setPage("messages")}
     />
   );
 }
