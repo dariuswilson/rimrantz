@@ -114,7 +114,6 @@ function GameCard({ game, onClick }) {
         {isLive && (
           <div className="flex items-center gap-1">
             <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-red-400 text-xs font-bold">LIVE</span>
           </div>
         )}
         {isScheduled && (
