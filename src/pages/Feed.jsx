@@ -17,6 +17,7 @@ export default function Feed({
   onBucksUpdate,
   onMessagesClick,
   onBucksClick,
+  unreadCount,
 }) {
   const [takes, setTakes] = useState([]);
   const [newTake, setNewTake] = useState("");
@@ -190,6 +191,7 @@ export default function Feed({
         onViewProfile={onViewProfile}
         onMessagesClick={onMessagesClick}
         onBucksClick={onBucksClick}
+        unreadCount={unreadCount}
       />
       <div className="max-w-5xl mx-auto px-6 py-6 flex gap-6">
         <div className="w-64 flex-shrink-0 hidden lg:block">

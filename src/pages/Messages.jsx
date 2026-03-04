@@ -219,6 +219,7 @@ export default function Messages({
   onBack,
   initialConvo,
   onMessagesClick,
+  unreadCount,
 }) {
   const [conversations, setConversations] = useState([]);
   const [activeConvo, setActiveConvo] = useState(null);
@@ -380,6 +381,7 @@ export default function Messages({
         onLogout={onLogout}
         onViewProfile={onViewProfile}
         onMessagesClick={onMessagesClick}
+        unreadCount={unreadCount}
       />
 
       <div className="max-w-4xl mx-auto p-4 md:p-6">

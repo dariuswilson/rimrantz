@@ -10,6 +10,7 @@ export default function Navbar({
   onViewProfile,
   onMessagesClick,
   onBucksClick,
+  unreadCount = 0,
 }) {
   const [search, setSearch] = useState("");
   const [results, setResults] = useState([]);
@@ -189,7 +190,7 @@ export default function Navbar({
           {/* Messages */}
           <button
             onClick={onMessagesClick}
-            className="p-2 rounded-xl text-sm transition cursor-pointer flex-shrink-0"
+            className="p-2 rounded-xl text-sm transition cursor-pointer flex-shrink-0 relative"
             style={{
               background: "rgba(255,255,255,0.05)",
               border: "1px solid rgba(255,255,255,0.08)",
@@ -197,6 +198,14 @@ export default function Navbar({
             }}
           >
             💬
+            {unreadCount > 0 && (
+              <span
+                className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white font-bold"
+                style={{ background: "#ef4444", fontSize: "9px" }}
+              >
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
           </button>
 
           {/* Profile dropdown */}

@@ -20,6 +20,7 @@ export default function App() {
   const [userBucks, setUserBucks] = useState(0);
   const [activeConvo, setActiveConvo] = useState(null);
   const [showTransactions, setShowTransactions] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
   const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -55,6 +56,15 @@ export default function App() {
     }
   };
 
+  const fetchUnreadCount = async (userId) => {
+    const { count } = await supabase
+      .from("messages")
+      .select("*", { count: "exact", head: true })
+      .eq("receiver_id", userId)
+      .eq("read", false);
+    setUnreadCount(count || 0);
+  };
+
   useEffect(() => {
     const timeout = setTimeout(() => setLoading(false), 3000);
 
@@ -73,13 +83,12 @@ export default function App() {
         }
 
         setSession(session);
-
         const profile = await fetchProfile(session.user.id);
         setUsername(profile?.username || null);
         setUserBucks(profile?.nba_bucks ?? 500);
-
         const isMod = await fetchModerator(session.user.id);
         setIsModerator(isMod);
+        await fetchUnreadCount(session.user.id);
       } catch (err) {
         console.log("init error:", err);
       }
@@ -100,15 +109,32 @@ export default function App() {
         setUserBucks(profile?.nba_bucks ?? 500);
         const isMod = await fetchModerator(session.user.id);
         setIsModerator(isMod);
+        await fetchUnreadCount(session.user.id);
       } else {
         setUsername(null);
         setIsModerator(false);
         setUserBucks(0);
+        setUnreadCount(0);
       }
     });
 
+    // Realtime unread count listener — outside init so cleanup works
+    const msgChannel = supabase
+      .channel("unread-count")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "messages" },
+        () => {
+          supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) fetchUnreadCount(session.user.id);
+          });
+        },
+      )
+      .subscribe();
+
     return () => {
       subscription.unsubscribe();
+      supabase.removeChannel(msgChannel);
       clearTimeout(timeout);
     };
   }, []);
@@ -127,13 +153,8 @@ export default function App() {
   if (!username)
     return <UsernameSetup user={session.user} onComplete={setUsername} />;
 
-  // const sharedNavProps = {
-  //   onBucksClick: () => setShowTransactions(true),
-  // };
-
   return (
     <>
-      {/* Global transactions modal - works on any page */}
       {showTransactions && (
         <TransactionsModal
           userId={session.user.id}
@@ -155,8 +176,12 @@ export default function App() {
             setViewingUsername(u);
             setPage("viewProfile");
           }}
-          onMessagesClick={() => setPage("messages")}
+          onMessagesClick={() => {
+            setUnreadCount(0);
+            setPage("messages");
+          }}
           onBucksClick={() => setShowTransactions(true)}
+          unreadCount={unreadCount}
         />
       )}
 
@@ -177,7 +202,11 @@ export default function App() {
             setActiveConvo(target);
             setPage("messages");
           }}
-          onMessagesClick={() => setPage("messages")}
+          onMessagesClick={() => {
+            setUnreadCount(0);
+            setPage("messages");
+          }}
+          unreadCount={unreadCount}
           onBucksClick={() => setShowTransactions(true)}
         />
       )}
@@ -196,7 +225,11 @@ export default function App() {
             setViewingUsername(u);
             setPage("viewProfile");
           }}
-          onMessagesClick={() => setPage("messages")}
+          onMessagesClick={() => {
+            setUnreadCount(0);
+            setPage("messages");
+          }}
+          unreadCount={unreadCount}
           onBucksClick={() => setShowTransactions(true)}
         />
       )}
@@ -209,12 +242,16 @@ export default function App() {
           initialConvo={activeConvo}
           onProfileClick={() => setPage("profile")}
           onLogout={() => supabase.auth.signOut()}
-          onMessagesClick={() => setPage("messages")}
+          onMessagesClick={() => {
+            setUnreadCount(0);
+            setPage("messages");
+          }}
           onViewProfile={(u) => {
             setViewingUsername(u);
             setPage("viewProfile");
           }}
           onBack={() => setPage("feed")}
+          unreadCount={unreadCount}
           onBucksClick={() => setShowTransactions(true)}
         />
       )}
@@ -235,7 +272,11 @@ export default function App() {
             setViewingGame(g);
             setPage("gameFeed");
           }}
-          onMessagesClick={() => setPage("messages")}
+          onMessagesClick={() => {
+            setUnreadCount(0);
+            setPage("messages");
+          }}
+          unreadCount={unreadCount}
           onBucksClick={() => setShowTransactions(true)}
         />
       )}
