@@ -44,7 +44,7 @@ export default function UsernameSetup({ user, onComplete }) {
 
       // Check if username exists
       const checkRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?select=username&username=eq.${username}`,
+        `${SUPABASE_URL}/rest/v1/profiles?select=username&username=ilike.${username}`,
         { headers: authHeaders },
       );
       const existing = await checkRes.json();
@@ -110,7 +110,7 @@ export default function UsernameSetup({ user, onComplete }) {
             type="text"
             placeholder="yourname"
             value={username}
-            onChange={(e) => setUsername(e.target.value())}
+            onChange={(e) => setUsername(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
             className="flex-1 bg-transparent text-white p-3 outline-none"
           />
