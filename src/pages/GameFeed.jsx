@@ -275,20 +275,28 @@ export default function GameFeed({
                 </div>
                 {game.period && (
                   <span className="text-zinc-400 text-sm">
-                    {game.period === 2 &&
-                    (game.clock === "0:00" ||
-                      game.clock === "00:00" ||
-                      !game.clock)
-                      ? "Halftime"
-                      : game.clock === "0:00" ||
-                          game.clock === "00:00" ||
-                          !game.clock
-                        ? game.period > 4
+                    {(() => {
+                      const detail = (
+                        game.shortDetail ||
+                        game.statusDetail ||
+                        ""
+                      ).toLowerCase();
+                      if (detail.includes("half")) return "Halftime";
+                      if (detail.includes("end") || detail.includes("int"))
+                        return detail;
+                      const noTime =
+                        !game.clock ||
+                        game.clock === "0:00" ||
+                        game.clock === "00:00";
+                      if (noTime && game.period === 2) return "Halftime";
+                      if (noTime)
+                        return game.period > 4
                           ? `OT${game.period - 4} End`
-                          : `End Q${game.period}`
-                        : game.period > 4
-                          ? `OT${game.period - 4} · ${game.clock}`
-                          : `Q${game.period} · ${game.clock}`}
+                          : `End Q${game.period}`;
+                      return game.period > 4
+                        ? `OT${game.period - 4} · ${game.clock}`
+                        : `Q${game.period} · ${game.clock}`;
+                    })()}
                   </span>
                 )}
               </>

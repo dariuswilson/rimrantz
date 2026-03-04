@@ -32,6 +32,24 @@ export default async function handler(req, res) {
           winProb?.awayWinPercentage * 100 ||
           null;
 
+        // Debug: log status info
+        console.log(
+          event.id,
+          home.team.abbreviation,
+          "vs",
+          away.team.abbreviation,
+          "status:",
+          status,
+          "clock:",
+          clock,
+          "period:",
+          period,
+          "detail:",
+          event.status.type.detail,
+          "shortDetail:",
+          event.status.type.shortDetail,
+        );
+
         return {
           id: event.id,
           status:
@@ -59,6 +77,8 @@ export default async function handler(req, res) {
           },
           clock,
           period,
+          statusDetail: event.status.type.detail || "",
+          shortDetail: event.status.type.shortDetail || "",
           win_probability:
             homeWinPct && awayWinPct
               ? {

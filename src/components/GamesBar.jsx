@@ -126,16 +126,17 @@ export default function GamesBar({
 }
 
 function getGameStatus(game) {
-  const { status, clock, period } = game;
+  const { status, clock, period, shortDetail = "", statusDetail = "" } = game;
   if (status === "closed")
     return { label: "Final", isLive: false, isFinal: true };
   if (status === "inprogress") {
-    const isHalftime =
-      period === 2 && (clock === "0:00" || clock === "00:00" || !clock);
-    const isEndOfQ =
-      !isHalftime && (clock === "0:00" || clock === "00:00" || !clock);
-    if (isHalftime) return { label: "Halftime", isLive: true };
-    if (isEndOfQ)
+    const detail = (shortDetail || statusDetail || "").toLowerCase();
+    if (detail.includes("half")) return { label: "Halftime", isLive: true };
+    if (detail.includes("end") || detail.includes("int"))
+      return { label: detail, isLive: true };
+    const noTime = !clock || clock === "0:00" || clock === "00:00";
+    if (noTime && period === 2) return { label: "Halftime", isLive: true };
+    if (noTime)
       return {
         label: period > 4 ? `OT${period - 4} End` : `End Q${period}`,
         isLive: true,
@@ -146,7 +147,6 @@ function getGameStatus(game) {
       isLive: true,
     };
   }
-  // scheduled
   return {
     label: new Date(game.start_time).toLocaleTimeString("en-US", {
       hour: "numeric",
@@ -170,7 +170,7 @@ function GameCard({ game, onGameClick, onBet }) {
 
   const { label, isScheduled } = getGameStatus(game);
 
-  const showScore = !isScheduled;
+  const showScore = !isScheduled; // show score for live AND final games
   const showBets = !isClosed;
 
   return (
