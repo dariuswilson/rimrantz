@@ -202,6 +202,11 @@ export default function Feed({
             onBucksUpdate={onBucksUpdate}
           />
 
+          {/* Mobile leaderboard - shows below games bar */}
+          <div className="lg:hidden mb-6">
+            <Leaderboard onViewProfile={onViewProfile} />
+          </div>
+
           {/* Compose box */}
           <div
             className="rounded-2xl p-5 mb-6"
