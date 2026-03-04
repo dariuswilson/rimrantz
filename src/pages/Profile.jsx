@@ -657,6 +657,9 @@ export default function Profile({
             userId={profile?.user_id}
             username={username}
             onClose={() => setShowTransactions(false)}
+            onBucksUpdate={(newBalance) =>
+              setProfile((prev) => ({ ...prev, nba_bucks: newBalance }))
+            }
           />
         )}
       </div>
