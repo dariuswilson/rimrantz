@@ -309,7 +309,7 @@ export default function Profile({
         username={username}
         avatarUrl={profile?.avatar_url}
         userBucks={profile?.nba_bucks}
-        onProfileClick={() => {}}
+        onProfileClick={onBack}
         onLogout={async () => {
           await supabase.auth.signOut();
         }}
