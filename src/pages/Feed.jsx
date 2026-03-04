@@ -189,7 +189,7 @@ export default function Feed({
         onViewProfile={onViewProfile}
         onMessagesClick={onMessagesClick}
       />
-      <div className="max-w-2xl mx-auto px-6 py-6">
+      <div className="max-w-5xl mx-auto px-6 py-6 flex gap-6">
         <div className="w-64 flex-shrink-0 hidden lg:block">
           <Leaderboard onViewProfile={onViewProfile} />
         </div>
