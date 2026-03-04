@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import BetModal from "../pages/BetModal";
-import { calcOdds, placeBet, settlePredictions } from "../utils/usePredictions";
+import { placeBet } from "../utils/usePredictions";
 
 export default function GamesBar({
   onGameClick,
@@ -10,16 +10,14 @@ export default function GamesBar({
 }) {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [betTarget, setBetTarget] = useState(null); // { game, team, odds }
+  const [betTarget, setBetTarget] = useState(null);
 
   const fetchGames = async () => {
     try {
       const res = await fetch("/api/nba-scores");
       if (!res.ok) throw new Error("API error");
       const data = await res.json();
-      const fetched = data.games || [];
-      setGames(fetched);
-      if (user) await settlePredictions(user.id, fetched, onBucksUpdate);
+      setGames(data.games || []);
     } catch {
       setGames([]);
     }
@@ -51,7 +49,7 @@ export default function GamesBar({
         odds,
         payout,
       );
-      onBucksUpdate(userBucks - amount);
+      if (onBucksUpdate) onBucksUpdate(userBucks - amount);
       setBetTarget(null);
     } catch {
       alert("Failed to place bet. Try again.");
@@ -96,7 +94,7 @@ export default function GamesBar({
               key={game.id}
               game={game}
               onGameClick={onGameClick}
-              onBet={(team, odds) => setBetTarget({ game, team, odds })}
+              onBet={(team, prob) => setBetTarget({ game, team, prob })}
             />
           ))}
         </div>
@@ -111,7 +109,13 @@ export default function GamesBar({
         <BetModal
           game={betTarget.game}
           team={betTarget.team}
-          odds={betTarget.odds}
+          odds={
+            betTarget.prob
+              ? betTarget.prob < 50
+                ? Math.round(((100 - betTarget.prob) / betTarget.prob) * 100)
+                : -Math.round((betTarget.prob / (100 - betTarget.prob)) * 100)
+              : 100
+          }
           userBucks={userBucks}
           onConfirm={handleBetConfirm}
           onClose={() => setBetTarget(null)}
@@ -121,28 +125,53 @@ export default function GamesBar({
   );
 }
 
+function getGameStatus(game) {
+  const { status, clock, period } = game;
+  if (status === "closed")
+    return { label: "Final", isLive: false, isFinal: true };
+  if (status === "inprogress") {
+    const isHalftime =
+      period === 2 && (clock === "0:00" || clock === "00:00" || !clock);
+    const isEndOfQ =
+      !isHalftime && (clock === "0:00" || clock === "00:00" || !clock);
+    if (isHalftime) return { label: "Halftime", isLive: true };
+    if (isEndOfQ)
+      return {
+        label: period > 4 ? `OT${period - 4} End` : `End Q${period}`,
+        isLive: true,
+      };
+    return {
+      label:
+        period > 4 ? `OT${period - 4} · ${clock}` : `Q${period} · ${clock}`,
+      isLive: true,
+    };
+  }
+  // scheduled
+  return {
+    label: new Date(game.start_time).toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    }),
+    isLive: false,
+    isScheduled: true,
+  };
+}
+
 function GameCard({ game, onGameClick, onBet }) {
   const homeAbbr = game.home;
   const awayAbbr = game.away;
   const homeScore = game.score?.[homeAbbr];
   const awayScore = game.score?.[awayAbbr];
-  const isLive = game.status === "inprogress";
-  const isScheduled = game.status === "scheduled";
   const isClosed = game.status === "closed";
+  const isLive = game.status === "inprogress";
 
-  // Calculate odds from win probability or score-based estimate
-  let homeWinProb = game.win_probability?.[homeAbbr];
-  let awayWinProb = game.win_probability?.[awayAbbr];
+  const homeWinProb = game.win_probability?.[homeAbbr];
+  const awayWinProb = game.win_probability?.[awayAbbr];
 
-  // If live and no win_probability, estimate from score diff
-  if (isLive && !homeWinProb) {
-    const diff = (homeScore || 0) - (awayScore || 0);
-    homeWinProb = Math.min(85, Math.max(15, 50 + diff * 2));
-    awayWinProb = 100 - homeWinProb;
-  }
+  const { label, isScheduled } = getGameStatus(game);
 
-  const homeOdds = homeWinProb ? calcOdds(homeWinProb) : null;
-  const awayOdds = awayWinProb ? calcOdds(awayWinProb) : null;
+  const showScore = !isScheduled;
+  const showBets = !isClosed;
 
   return (
     <div
@@ -152,35 +181,24 @@ function GameCard({ game, onGameClick, onBet }) {
         border: isLive
           ? "1px solid rgba(239,68,68,0.4)"
           : "1px solid rgba(255,255,255,0.06)",
-        minWidth: "180px",
+        minWidth: "175px",
       }}
     >
-      {/* Clickable scoreboard area */}
+      {/* Clickable score area */}
       <div
         onClick={() => onGameClick(game)}
         className="p-4 cursor-pointer hover:bg-white/5 transition"
       >
-        {/* Status */}
-        <div className="flex items-center justify-between mb-3">
+        {/* Status row */}
+        <div className="flex items-center gap-1.5 mb-3">
           {isLive && (
-            <div className="flex items-center justify-between w-full mb-3">
-              <div className="flex items-center gap-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                <span className="text-red-400 text-xs font-bold">LIVE</span>
-              </div>
-              <span className="text-zinc-400 text-xs">
-                {game.clock === "0:00" || game.clock === "00:00" || !game.clock
-                  ? game.period === 2
-                    ? "Halftime"
-                    : game.period > 4
-                      ? `OT${game.period - 4}`
-                      : `Q${game.period}`
-                  : game.period > 4
-                    ? `OT${game.period - 4}`
-                    : `Q${game.period} · ${game.clock}`}
-              </span>
-            </div>
+            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
           )}
+          <span
+            className={`text-xs font-semibold ${isLive ? "text-red-400" : "text-zinc-500"}`}
+          >
+            {label}
+          </span>
         </div>
 
         {/* Away team */}
@@ -196,7 +214,7 @@ function GameCard({ game, onGameClick, onBet }) {
               {awayAbbr}
             </span>
           </div>
-          {!isScheduled && (
+          {showScore && (
             <span
               className={`text-sm font-bold ${awayScore > homeScore ? "text-white" : "text-zinc-500"}`}
             >
@@ -218,7 +236,7 @@ function GameCard({ game, onGameClick, onBet }) {
               {homeAbbr}
             </span>
           </div>
-          {!isScheduled && (
+          {showScore && (
             <span
               className={`text-sm font-bold ${homeScore > awayScore ? "text-white" : "text-zinc-500"}`}
             >
@@ -228,27 +246,27 @@ function GameCard({ game, onGameClick, onBet }) {
         </div>
       </div>
 
-      {/* Betting odds row - only show if not closed */}
-      {!isClosed && homeWinProb !== null && homeWinProb !== undefined && (
+      {/* Bet buttons - show for scheduled AND live games */}
+      {showBets && (homeWinProb || awayWinProb) && (
         <div className="px-3 pb-3 flex gap-2">
           <button
-            onClick={() => onBet(awayAbbr, awayOdds)}
+            onClick={() => onBet(awayAbbr, awayWinProb)}
             className="flex-1 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer hover:opacity-80"
             style={{
               background: "rgba(255,255,255,0.05)",
               border: "1px solid rgba(255,255,255,0.08)",
-              color: awayWinProb < 50 ? "#22c55e" : "#f97316",
+              color: awayWinProb && awayWinProb < 50 ? "#22c55e" : "#f97316",
             }}
           >
             {awayAbbr} {awayWinProb ? `${Math.round(awayWinProb)}%` : "—"}
           </button>
           <button
-            onClick={() => onBet(homeAbbr, homeOdds)}
+            onClick={() => onBet(homeAbbr, homeWinProb)}
             className="flex-1 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer hover:opacity-80"
             style={{
               background: "rgba(255,255,255,0.05)",
               border: "1px solid rgba(255,255,255,0.08)",
-              color: homeWinProb < 50 ? "#22c55e" : "#f97316",
+              color: homeWinProb && homeWinProb < 50 ? "#22c55e" : "#f97316",
             }}
           >
             {homeAbbr} {homeWinProb ? `${Math.round(homeWinProb)}%` : "—"}

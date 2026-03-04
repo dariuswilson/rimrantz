@@ -152,7 +152,7 @@ export default function GameFeed({
       supabase.removeChannel(channel);
       clearInterval(scoreInterval);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [game.id]);
 
   const postTake = async () => {
     if (!newPost.trim()) return;
@@ -275,17 +275,20 @@ export default function GameFeed({
                 </div>
                 {game.period && (
                   <span className="text-zinc-400 text-sm">
-                    {game.clock === "0:00" ||
-                    game.clock === "00:00" ||
-                    !game.clock
-                      ? game.period === 2
-                        ? "Halftime"
+                    {game.period === 2 &&
+                    (game.clock === "0:00" ||
+                      game.clock === "00:00" ||
+                      !game.clock)
+                      ? "Halftime"
+                      : game.clock === "0:00" ||
+                          game.clock === "00:00" ||
+                          !game.clock
+                        ? game.period > 4
+                          ? `OT${game.period - 4} End`
+                          : `End Q${game.period}`
                         : game.period > 4
-                          ? `OT${game.period - 4}`
-                          : `Q${game.period} End`
-                      : game.period > 4
-                        ? `OT${game.period - 4}`
-                        : `Q${game.period} · ${game.clock}`}
+                          ? `OT${game.period - 4} · ${game.clock}`
+                          : `Q${game.period} · ${game.clock}`}
                   </span>
                 )}
               </>
