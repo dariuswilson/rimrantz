@@ -63,17 +63,17 @@ export default function Navbar({
         borderColor: "rgba(255,255,255,0.06)",
       }}
     >
-      <div className="max-w-2xl mx-auto px-6 py-3 flex items-center gap-3">
+      <div className="w-full px-3 py-3 flex items-center gap-2">
         {/* Logo */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-lg"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
             style={{ background: "linear-gradient(135deg, #f97316, #ef4444)" }}
           >
             🏀
           </div>
           <span
-            className="font-black text-lg tracking-tight hidden sm:block"
+            className="font-black text-lg tracking-tight hidden md:block"
             style={{
               background: "linear-gradient(90deg, #f97316, #ef4444)",
               WebkitBackgroundClip: "text",
@@ -85,7 +85,7 @@ export default function Navbar({
         </div>
 
         {/* Search bar */}
-        <div className="flex-1 relative" ref={searchRef}>
+        <div className="flex-1 relative min-w-0" ref={searchRef}>
           <div
             className="flex items-center gap-2 px-3 py-2 rounded-xl"
             style={{
@@ -93,16 +93,18 @@ export default function Navbar({
               border: "1px solid rgba(255,255,255,0.08)",
             }}
           >
-            <span className="text-zinc-500 text-sm">🔍</span>
+            <span className="text-zinc-500 text-sm flex-shrink-0">🔍</span>
             <input
               type="text"
-              placeholder="Search users..."
+              placeholder="Search..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onFocus={() => search && setShowResults(true)}
-              className="flex-1 bg-transparent text-white text-sm outline-none placeholder-zinc-600"
+              className="flex-1 bg-transparent text-white text-sm outline-none placeholder-zinc-600 min-w-0"
             />
-            {searching && <span className="text-zinc-600 text-xs">...</span>}
+            {searching && (
+              <span className="text-zinc-600 text-xs flex-shrink-0">...</span>
+            )}
           </div>
 
           {/* Dropdown results */}
@@ -141,11 +143,11 @@ export default function Navbar({
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-semibold">
+                    <p className="text-white text-sm font-semibold truncate">
                       @{u.username}
                     </p>
                     <p className="text-zinc-500 text-xs">
-                      💰 {(u.nba_bucks ?? 500).toLocaleString()} NBA Bucks
+                      💰 {(u.nba_bucks ?? 500).toLocaleString()}
                     </p>
                   </div>
                   {u.favorite_team && (
@@ -163,25 +165,25 @@ export default function Navbar({
         </div>
 
         {/* Right side */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {/* Bucks */}
           <div
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm"
+            className="flex items-center gap-1 px-2 py-2 rounded-xl text-sm flex-shrink-0"
             style={{
               background: "rgba(255,255,255,0.05)",
               border: "1px solid rgba(255,255,255,0.08)",
             }}
           >
             <span>💰</span>
-            <span className="text-white font-bold">
+            <span className="text-white font-bold text-xs">
               {userBucks?.toLocaleString()}
             </span>
-            <span className="text-zinc-500 text-xs hidden sm:inline">
-              NBA Bucks
-            </span>
           </div>
+
+          {/* Messages */}
           <button
             onClick={onMessagesClick}
-            className="px-3 py-2 rounded-xl text-sm transition cursor-pointer relative"
+            className="p-2 rounded-xl text-sm transition cursor-pointer flex-shrink-0"
             style={{
               background: "rgba(255,255,255,0.05)",
               border: "1px solid rgba(255,255,255,0.08)",
@@ -190,16 +192,18 @@ export default function Navbar({
           >
             💬
           </button>
+
+          {/* Profile */}
           <button
             onClick={onProfileClick}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition cursor-pointer"
+            className="flex items-center gap-1.5 px-2 py-2 rounded-xl text-sm font-medium transition cursor-pointer flex-shrink-0"
             style={{
               background: "rgba(249,115,22,0.1)",
               border: "1px solid rgba(249,115,22,0.2)",
               color: "#f97316",
             }}
           >
-            <div className="w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center text-xs font-bold text-white overflow-hidden">
+            <div className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center text-xs font-bold text-white overflow-hidden flex-shrink-0">
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
@@ -210,11 +214,13 @@ export default function Navbar({
                 username?.[0]?.toUpperCase()
               )}
             </div>
-            <span className="hidden sm:inline">@{username}</span>
+            <span className="hidden md:inline text-xs">@{username}</span>
           </button>
+
+          {/* Sign out - hidden on mobile */}
           <button
             onClick={onLogout}
-            className="px-3 py-2 rounded-xl text-sm transition cursor-pointer"
+            className="hidden md:block px-3 py-2 rounded-xl text-sm transition cursor-pointer"
             style={{
               background: "rgba(255,255,255,0.05)",
               border: "1px solid rgba(255,255,255,0.08)",
