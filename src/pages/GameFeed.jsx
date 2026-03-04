@@ -48,6 +48,7 @@ export default function GameFeed({
   onViewProfile,
   onProfileClick,
   onLogout,
+  onMessagesClick,
 }) {
   const [game, setGame] = useState(initialGame);
   const [posts, setPosts] = useState([]);
@@ -233,6 +234,7 @@ export default function GameFeed({
         onProfileClick={onProfileClick}
         onLogout={onLogout}
         onViewProfile={onViewProfile}
+        onMessagesClick={onMessagesClick}
       />
 
       <div className="max-w-2xl mx-auto p-6">

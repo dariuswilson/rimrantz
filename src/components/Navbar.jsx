@@ -8,6 +8,7 @@ export default function Navbar({
   onProfileClick,
   onLogout,
   onViewProfile,
+  onMessagesClick,
 }) {
   const [search, setSearch] = useState("");
   const [results, setResults] = useState([]);
@@ -178,6 +179,17 @@ export default function Navbar({
               NBA Bucks
             </span>
           </div>
+          <button
+            onClick={onMessagesClick}
+            className="px-3 py-2 rounded-xl text-sm transition cursor-pointer relative"
+            style={{
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              color: "#71717a",
+            }}
+          >
+            💬
+          </button>
           <button
             onClick={onProfileClick}
             className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition cursor-pointer"

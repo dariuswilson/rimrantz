@@ -132,6 +132,7 @@ export default function Profile({
   isModerator,
   onViewProfile,
   onBack,
+  onMessagesClick,
 }) {
   const [profile, setProfile] = useState(null);
   const [takes, setTakes] = useState([]);
@@ -258,6 +259,7 @@ export default function Profile({
           await supabase.auth.signOut();
         }}
         onViewProfile={(u) => onViewProfile?.(u)}
+        onMessagesClick={onMessagesClick}
       />
       <div className="max-w-2xl mx-auto p-6">
         {/* Back button */}

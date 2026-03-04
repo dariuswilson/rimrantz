@@ -6,6 +6,7 @@ import UsernameSetup from "./pages/UsernameSetup";
 import Profile from "./pages/Profile";
 import ViewProfile from "./pages/ViewProfile";
 import GameFeed from "./pages/GameFeed";
+import Messages from "./pages/Messages";
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -16,6 +17,7 @@ export default function App() {
   const [isModerator, setIsModerator] = useState(false);
   const [viewingGame, setViewingGame] = useState(null);
   const [userBucks, setUserBucks] = useState(0);
+  const [activeConvo, setActiveConvo] = useState(null);
 
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
   const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -147,6 +149,10 @@ export default function App() {
           setViewingUsername(u);
           setPage("viewProfile");
         }}
+        onDM={(target) => {
+          setActiveConvo(target);
+          setPage("messages");
+        }}
       />
     );
   if (page === "gameFeed")
@@ -166,6 +172,22 @@ export default function App() {
         }}
       />
     );
+  if (page === "messages")
+    return (
+      <Messages
+        user={session.user}
+        username={username}
+        userBucks={userBucks}
+        onProfileClick={() => setPage("profile")}
+        onLogout={() => supabase.auth.signOut()}
+        onMessagesClick={() => setPage("messages")}
+        onViewProfile={(u) => {
+          setViewingUsername(u);
+          setPage("viewProfile");
+        }}
+        onBack={() => setPage("feed")}
+      />
+    );
   return (
     <Feed
       username={username}
@@ -178,6 +200,7 @@ export default function App() {
         setViewingUsername(u);
         setPage("viewProfile");
       }}
+      initialConvo={activeConvo}
       onGameClick={(g) => {
         setViewingGame(g);
         setPage("gameFeed");

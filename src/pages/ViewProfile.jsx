@@ -44,6 +44,8 @@ export default function ViewProfile({
   isModerator,
   onBack,
   onViewProfile,
+  onDM,
+  onMessagesClick,
 }) {
   const [profile, setProfile] = useState(null);
   const [takes, setTakes] = useState([]);
@@ -155,6 +157,7 @@ export default function ViewProfile({
           await supabase.auth.signOut();
         }}
         onViewProfile={(u) => onViewProfile?.(u)}
+        onMessagesClick={onMessagesClick}
       />
       <div className="max-w-2xl mx-auto p-6">
         {/* Back button */}
@@ -201,6 +204,17 @@ export default function ViewProfile({
                   username?.[0]?.toUpperCase()
                 )}
               </div>
+              <button
+                onClick={() => onDM({ user_id: profile.user_id, username })}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition cursor-pointer"
+                style={{
+                  background: "rgba(249,115,22,0.1)",
+                  border: "1px solid rgba(249,115,22,0.2)",
+                  color: "#f97316",
+                }}
+              >
+                💬 Message
+              </button>
             </div>
 
             {/* Name & team */}

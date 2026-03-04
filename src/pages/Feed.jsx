@@ -14,6 +14,7 @@ export default function Feed({
   onGameClick,
   userBucks,
   onBucksUpdate,
+  onMessagesClick,
 }) {
   const [takes, setTakes] = useState([]);
   const [newTake, setNewTake] = useState("");
@@ -185,6 +186,7 @@ export default function Feed({
         onProfileClick={onProfileClick}
         onLogout={handleLogout}
         onViewProfile={onViewProfile}
+        onMessagesClick={onMessagesClick}
       />
       <div className="max-w-2xl mx-auto px-6 py-6">
         {/* Games bar */}
