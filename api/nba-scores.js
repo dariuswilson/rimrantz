@@ -15,9 +15,22 @@ export default async function handler(req, res) {
         const home = comp.competitors.find((t) => t.homeAway === "home");
         const away = comp.competitors.find((t) => t.homeAway === "away");
         const status = event.status.type.name;
-        const statusDetail = event.status.type.shortDetail || "";
         const clock = event.status.displayClock;
         const period = event.status.period;
+
+        // ESPN provides win probability in the competition
+        const winProb = comp.situation?.lastPlay?.probability || null;
+
+        // Try predictor data
+        const predictor = comp.predictor || null;
+        const homeWinPct =
+          predictor?.homeTeam?.gameProjection ||
+          winProb?.homeWinPercentage * 100 ||
+          null;
+        const awayWinPct =
+          predictor?.awayTeam?.gameProjection ||
+          winProb?.awayWinPercentage * 100 ||
+          null;
 
         return {
           id: event.id,
@@ -46,7 +59,13 @@ export default async function handler(req, res) {
           },
           clock,
           period,
-          statusDetail,
+          win_probability:
+            homeWinPct && awayWinPct
+              ? {
+                  [home.team.abbreviation]: Math.round(homeWinPct),
+                  [away.team.abbreviation]: Math.round(awayWinPct),
+                }
+              : null,
         };
       }) || [];
 

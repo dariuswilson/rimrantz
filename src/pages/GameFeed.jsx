@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabase";
 import { moderateContent } from "../utils/moderate";
+import { placeBet } from "../utils/usePredictions";
+import BetModal from "./BetModal";
+import Navbar from "../components/Navbar";
 
 const NBA_TEAM_COLORS = {
   ATL: "#C1272D",
@@ -36,12 +39,17 @@ const NBA_TEAM_COLORS = {
 };
 
 export default function GameFeed({
-  game,
+  game: initialGame,
   user,
   username,
+  userBucks,
+  onBucksUpdate,
   onBack,
   onViewProfile,
+  onProfileClick,
+  onLogout,
 }) {
+  const [game, setGame] = useState(initialGame);
   const [posts, setPosts] = useState([]);
   const [newPost, setNewPost] = useState("");
   const [loading, setLoading] = useState(false);
@@ -50,6 +58,8 @@ export default function GameFeed({
   const [comments, setComments] = useState({});
   const [openComments, setOpenComments] = useState(null);
   const [newComment, setNewComment] = useState({});
+  const [betTarget, setBetTarget] = useState(null);
+  const [avatarUrl, setAvatarUrl] = useState(null);
 
   const homeAbbr = game.home;
   const awayAbbr = game.away;
@@ -58,6 +68,22 @@ export default function GameFeed({
   const isLive = game.status === "inprogress";
   const isScheduled = game.status === "scheduled";
   const isClosed = game.status === "closed";
+
+  // Win probabilities from ESPN
+  const homeWinProb = game.win_probability?.[homeAbbr];
+  const awayWinProb = game.win_probability?.[awayAbbr];
+
+  const fetchLiveGame = async () => {
+    try {
+      const res = await fetch("/api/nba-scores");
+      if (!res.ok) return;
+      const data = await res.json();
+      const updated = data.games?.find((g) => g.id === initialGame.id);
+      if (updated) setGame(updated);
+    } catch {
+      /* continue */
+    }
+  };
 
   const fetchPosts = async () => {
     const { data } = await supabase
@@ -96,8 +122,17 @@ export default function GameFeed({
       await fetchPosts();
       await fetchComments();
       await fetchModerators();
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("avatar_url")
+        .eq("user_id", user.id)
+        .single();
+      setAvatarUrl(profileData?.avatar_url || null);
     };
     load();
+
+    // Refresh score every 20 seconds
+    const scoreInterval = setInterval(fetchLiveGame, 20000);
 
     const channel = supabase
       .channel(`game-feed-${game.id}`)
@@ -113,8 +148,11 @@ export default function GameFeed({
       )
       .subscribe();
 
-    return () => supabase.removeChannel(channel);
-  }, [game.id]);
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(scoreInterval);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const postTake = async () => {
     if (!newPost.trim()) return;
@@ -158,12 +196,9 @@ export default function GameFeed({
     } catch {
       /* continue */
     }
-    await supabase.from("game_take_comments").insert({
-      game_take_id: postId,
-      user_id: user.id,
-      username,
-      content,
-    });
+    await supabase
+      .from("game_take_comments")
+      .insert({ game_take_id: postId, user_id: user.id, username, content });
     setNewComment((prev) => ({ ...prev, [postId]: "" }));
     await fetchComments();
   };
@@ -173,13 +208,34 @@ export default function GameFeed({
     await fetchComments();
   };
 
+  const handleBetConfirm = async (amount, odds, payout) => {
+    if (!betTarget || !user) return;
+    try {
+      await placeBet(user.id, game, betTarget.team, amount, odds, payout);
+      if (onBucksUpdate) onBucksUpdate(userBucks - amount);
+      setBetTarget(null);
+    } catch {
+      setError("Failed to place bet. Try again.");
+    }
+  };
+
   const homeColor = NBA_TEAM_COLORS[homeAbbr] || "#f97316";
   const awayColor = NBA_TEAM_COLORS[awayAbbr] || "#888";
 
+  const formatProb = (prob) => (prob ? `${Math.round(prob)}%` : "—");
+
   return (
     <div className="min-h-screen text-white" style={{ background: "#080810" }}>
+      <Navbar
+        username={username}
+        avatarUrl={avatarUrl}
+        userBucks={userBucks}
+        onProfileClick={onProfileClick}
+        onLogout={onLogout}
+      />
+
       <div className="max-w-2xl mx-auto p-6">
-        {/* Header */}
+        {/* Back button */}
         <div className="flex items-center gap-4 mb-6">
           <button
             onClick={onBack}
@@ -202,9 +258,9 @@ export default function GameFeed({
             border: "1px solid rgba(255,255,255,0.08)",
           }}
         >
-          <div className="px-6 pt-5 pb-2 flex items-center justify-center">
+          <div className="px-6 pt-5 pb-2 flex items-center justify-center gap-3">
             {isLive && (
-              <div className="flex items-center justify-center gap-3">
+              <>
                 <div
                   className="flex items-center gap-2 px-3 py-1 rounded-full"
                   style={{
@@ -217,11 +273,15 @@ export default function GameFeed({
                     Live
                   </span>
                 </div>
-                <span className="text-zinc-400 text-sm">
-                  {game.period > 4 ? `OT${game.period - 4}` : `Q${game.period}`}{" "}
-                  · {game.clock}
-                </span>
-              </div>
+                {game.period && (
+                  <span className="text-zinc-400 text-sm">
+                    {game.period > 4
+                      ? `OT${game.period - 4}`
+                      : `Q${game.period}`}{" "}
+                    · {game.clock}
+                  </span>
+                )}
+              </>
             )}
             {isScheduled && (
               <span className="text-zinc-400 text-sm">
@@ -238,7 +298,7 @@ export default function GameFeed({
             )}
           </div>
 
-          <div className="flex items-center justify-between px-8 pb-8 pt-4">
+          <div className="flex items-center justify-between px-8 pb-6 pt-4">
             {/* Away */}
             <div className="flex flex-col items-center gap-3 flex-1">
               <img
@@ -258,9 +318,15 @@ export default function GameFeed({
                   {awayScore}
                 </span>
               )}
-              {isScheduled && game.win_probability && (
-                <span className="text-zinc-500 text-xs">
-                  {game.win_probability[awayAbbr]}% win
+              {awayWinProb && !isClosed && (
+                <span
+                  className="text-xs font-bold px-2 py-0.5 rounded-full"
+                  style={{
+                    background: "rgba(255,255,255,0.06)",
+                    color: awayWinProb > 50 ? "#22c55e" : "#71717a",
+                  }}
+                >
+                  {formatProb(awayWinProb)} win
                 </span>
               )}
             </div>
@@ -288,13 +354,55 @@ export default function GameFeed({
                   {homeScore}
                 </span>
               )}
-              {isScheduled && game.win_probability && (
-                <span className="text-zinc-500 text-xs">
-                  {game.win_probability[homeAbbr]}% win
+              {homeWinProb && !isClosed && (
+                <span
+                  className="text-xs font-bold px-2 py-0.5 rounded-full"
+                  style={{
+                    background: "rgba(255,255,255,0.06)",
+                    color: homeWinProb > 50 ? "#22c55e" : "#71717a",
+                  }}
+                >
+                  {formatProb(homeWinProb)} win
                 </span>
               )}
             </div>
           </div>
+
+          {/* Bet buttons */}
+          {!isClosed && (
+            <div className="px-6 pb-5 flex gap-3">
+              <button
+                onClick={() =>
+                  setBetTarget({ team: awayAbbr, prob: awayWinProb })
+                }
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold transition cursor-pointer"
+                style={{
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  color:
+                    awayWinProb && awayWinProb < 50 ? "#22c55e" : "#f97316",
+                }}
+              >
+                Bet {awayAbbr}{" "}
+                {awayWinProb ? `· ${formatProb(awayWinProb)}` : ""}
+              </button>
+              <button
+                onClick={() =>
+                  setBetTarget({ team: homeAbbr, prob: homeWinProb })
+                }
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold transition cursor-pointer"
+                style={{
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  color:
+                    homeWinProb && homeWinProb < 50 ? "#22c55e" : "#f97316",
+                }}
+              >
+                Bet {homeAbbr}{" "}
+                {homeWinProb ? `· ${formatProb(homeWinProb)}` : ""}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Compose */}
@@ -306,8 +414,16 @@ export default function GameFeed({
           }}
         >
           <div className="flex gap-3">
-            <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-sm font-black flex-shrink-0">
-              {username?.[0]?.toUpperCase()}
+            <div className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-sm font-black flex-shrink-0 overflow-hidden">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt="avatar"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                username?.[0]?.toUpperCase()
+              )}
             </div>
             <div className="flex-1">
               {error && (
@@ -368,7 +484,6 @@ export default function GameFeed({
                 border: "1px solid rgba(255,255,255,0.05)",
               }}
             >
-              {/* Header */}
               <div className="flex items-center gap-3 mb-3">
                 <div
                   onClick={() => onViewProfile(post.username)}
@@ -415,12 +530,10 @@ export default function GameFeed({
                 )}
               </div>
 
-              {/* Content */}
               <p className="text-white text-sm leading-relaxed mb-4">
                 {post.content}
               </p>
 
-              {/* Comments toggle */}
               <button
                 onClick={() =>
                   setOpenComments(openComments === post.id ? null : post.id)
@@ -434,7 +547,6 @@ export default function GameFeed({
                 </span>
               </button>
 
-              {/* Comments */}
               {openComments === post.id && (
                 <div
                   className="mt-4 space-y-3"
@@ -491,7 +603,6 @@ export default function GameFeed({
                       )}
                     </div>
                   ))}
-
                   <div className="flex gap-2 mt-2">
                     <input
                       type="text"
@@ -529,6 +640,23 @@ export default function GameFeed({
           ))}
         </div>
       </div>
+
+      {betTarget && (
+        <BetModal
+          game={game}
+          team={betTarget.team}
+          odds={
+            betTarget.prob
+              ? betTarget.prob < 50
+                ? Math.round(((100 - betTarget.prob) / betTarget.prob) * 100)
+                : -Math.round((betTarget.prob / (100 - betTarget.prob)) * 100)
+              : 100
+          }
+          userBucks={userBucks}
+          onConfirm={handleBetConfirm}
+          onClose={() => setBetTarget(null)}
+        />
+      )}
     </div>
   );
 }
