@@ -22,6 +22,20 @@ async function settleNow(userId) {
   }
 
   const finishedGames = games.filter((g) => g.status === "closed");
+  console.log(
+    "All games:",
+    games.map((g) => ({
+      id: g.id,
+      status: g.status,
+      home: g.home,
+      away: g.away,
+    })),
+  );
+  console.log("Finished games:", finishedGames.length);
+  console.log(
+    "Pending predictions:",
+    pending.map((p) => ({ game_id: p.game_id, team: p.team_picked })),
+  );
   let totalWinnings = 0;
 
   for (const pred of pending) {
