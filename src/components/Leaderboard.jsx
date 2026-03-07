@@ -201,7 +201,14 @@ export default function Leaderboard({ onViewProfile }) {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-4 overflow-x-auto pb-1 scrollbar-hide">
+      <div
+        className="leaderboard-tabs flex gap-1 mb-4 pb-1"
+        style={{
+          overflowX: "auto",
+          scrollbarWidth: "thin",
+          scrollbarColor: "#f97316 #1c1c1e",
+        }}
+      >
         {TABS.map((tab) => (
           <button
             key={tab.key}
@@ -223,6 +230,11 @@ export default function Leaderboard({ onViewProfile }) {
           </button>
         ))}
       </div>
+      <style>{`
+  .leaderboard-tabs::-webkit-scrollbar { height: 6px; }
+  .leaderboard-tabs::-webkit-scrollbar-track { background: #1c1c1e; border-radius: 999px; }
+  .leaderboard-tabs::-webkit-scrollbar-thumb { background: #f97316; border-radius: 999px; }
+`}</style>
 
       {/* List */}
       <div className="space-y-2">
