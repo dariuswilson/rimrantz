@@ -165,11 +165,11 @@ function GroupChatView({
   sendGroupMessage,
   setMobileView,
   user,
-
   bottomRef,
   members,
   showMembers,
   setShowMembers,
+  onViewProfile,
 }) {
   return (
     <div
@@ -240,11 +240,18 @@ function GroupChatView({
             {members.map((m) => (
               <div
                 key={m.user_id}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+                onClick={() => onViewProfile(m.username)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full cursor-pointer transition"
                 style={{
                   background: "rgba(255,255,255,0.06)",
                   border: "1px solid rgba(255,255,255,0.08)",
                 }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = "rgba(249,115,22,0.15)")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background = "rgba(255,255,255,0.06)")
+                }
               >
                 <div className="w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center text-xs font-bold overflow-hidden flex-shrink-0">
                   {m.avatar_url ? (
@@ -257,7 +264,9 @@ function GroupChatView({
                     m.username?.[0]?.toUpperCase()
                   )}
                 </div>
-                <span className="text-zinc-300 text-xs">@{m.username}</span>
+                <span className="text-zinc-300 text-xs hover:text-orange-400 transition">
+                  @{m.username}
+                </span>
                 {m.user_id === user.id && (
                   <span className="text-orange-400 text-xs">(you)</span>
                 )}
@@ -268,7 +277,10 @@ function GroupChatView({
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div
+        className="group-messages flex-1 overflow-y-auto p-4 space-y-3"
+        style={{ scrollbarWidth: "thin", scrollbarColor: "#f97316 #1c1c1e" }}
+      >
         {messages.map((msg) => {
           const isMine = msg.sender_id === user.id;
           return (
@@ -293,7 +305,10 @@ function GroupChatView({
                 className={`max-w-xs ${!isMine ? "items-start" : "items-end"} flex flex-col`}
               >
                 {!isMine && (
-                  <p className="text-zinc-500 text-xs mb-1 ml-1">
+                  <p
+                    className="text-zinc-500 text-xs mb-1 ml-1 cursor-pointer hover:text-orange-400 transition"
+                    onClick={() => onViewProfile(msg.sender_username)}
+                  >
                     @{msg.sender_username}
                   </p>
                 )}
@@ -323,6 +338,11 @@ function GroupChatView({
         })}
         <div ref={bottomRef} />
       </div>
+      <style>{`
+  .group-messages::-webkit-scrollbar { width: 6px; }
+  .group-messages::-webkit-scrollbar-track { background: #1c1c1e; border-radius: 999px; }
+  .group-messages::-webkit-scrollbar-thumb { background: #f97316; border-radius: 999px; }
+`}</style>
 
       {/* Input */}
       <div
@@ -565,7 +585,24 @@ export default function Messages({
       .select("*")
       .eq("group_id", teamAbbr)
       .order("created_at", { ascending: true });
-    setGroupMessages(data || []);
+    if (!data) return setGroupMessages([]);
+
+    // Get unique sender IDs and fetch their avatars
+    const senderIds = [...new Set(data.map((m) => m.sender_id))];
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("user_id, avatar_url")
+      .in("user_id", senderIds);
+
+    const avatarMap = {};
+    profiles?.forEach((p) => (avatarMap[p.user_id] = p.avatar_url));
+
+    setGroupMessages(
+      data.map((m) => ({
+        ...m,
+        sender_avatar: avatarMap[m.sender_id] || null,
+      })),
+    );
   };
 
   const fetchConversations = async () => {
@@ -743,6 +780,7 @@ export default function Messages({
     members: groupMembers,
     showMembers,
     setShowMembers,
+    onViewProfile,
   };
 
   const chatPanel = isGroupActive ? (
