@@ -8,6 +8,7 @@ import ViewProfile from "./pages/ViewProfile";
 import GameFeed from "./pages/GameFeed";
 import Messages from "./pages/Messages";
 import TransactionsModal from "./pages/TransactionsModal";
+import ModeratorPanel from "./pages/ModeratorPanel";
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -267,6 +268,7 @@ export default function App() {
           user={session.user}
           isModerator={isModerator}
           userBucks={userBucks}
+          onModPanelClick={() => setPage("modPanel")}
           onBack={() => setPage("feed")}
           onProfileClick={() => setPage("profile")}
           onViewProfile={(u) => {
@@ -289,6 +291,7 @@ export default function App() {
           currentUsername={username}
           currentUserBucks={userBucks}
           isModerator={isModerator}
+          onModPanelClick={() => setPage("modPanel")}
           onBack={() => setPage("feed")}
           onProfileClick={() => setPage("profile")}
           onViewProfile={(u) => {
@@ -315,6 +318,8 @@ export default function App() {
           username={username}
           userBucks={userBucks}
           onBucksUpdate={setUserBucks}
+          isModerator={isModerator}
+          onModPanelClick={() => setPage("modPanel")}
           onProfileClick={() => setPage("profile")}
           onLogout={() => supabase.auth.signOut()}
           onBack={() => setPage("feed")}
@@ -336,6 +341,8 @@ export default function App() {
           user={session.user}
           username={username}
           userBucks={userBucks}
+          isModerator={isModerator}
+          onModPanelClick={() => setPage("modPanel")}
           initialConvo={activeConvo}
           onProfileClick={() => setPage("profile")}
           onLogout={() => supabase.auth.signOut()}
@@ -353,11 +360,34 @@ export default function App() {
         />
       )}
 
+      {page === "modPanel" && (
+        <ModeratorPanel
+          user={session.user}
+          username={username}
+          userBucks={userBucks}
+          isModerator={isModerator}
+          onBack={() => setPage("feed")}
+          onProfileClick={() => setPage("profile")}
+          onViewProfile={(u) => {
+            setViewingUsername(u);
+            setPage("viewProfile");
+          }}
+          onMessagesClick={() => {
+            setUnreadCount(0);
+            setPage("messages");
+          }}
+          onBucksClick={() => setShowTransactions(true)}
+          unreadCount={unreadCount}
+          onModPanelClick={() => setPage("modPanel")}
+        />
+      )}
+
       {page === "feed" && (
         <Feed
           username={username}
           user={session.user}
           isModerator={isModerator}
+          onModPanelClick={() => setPage("modPanel")}
           userBucks={userBucks}
           onBucksUpdate={setUserBucks}
           onProfileClick={() => setPage("profile")}

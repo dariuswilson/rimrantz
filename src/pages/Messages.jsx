@@ -524,6 +524,8 @@ export default function Messages({
   onMessagesClick,
   unreadCount,
   onBucksClick,
+  isModerator,
+  onModPanelClick,
 }) {
   const [conversations, setConversations] = useState([]);
   const [activeConvo, setActiveConvo] = useState(null);
@@ -801,6 +803,8 @@ export default function Messages({
         onMessagesClick={onMessagesClick}
         unreadCount={unreadCount}
         onBucksClick={onBucksClick}
+        isModerator={isModerator}
+        onModPanelClick={onModPanelClick}
       />
 
       <div className="max-w-4xl mx-auto p-4 md:p-6">

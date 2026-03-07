@@ -51,6 +51,8 @@ export default function GameFeed({
   onMessagesClick,
   unreadCount,
   onBucksClick,
+  onModPanelClick,
+  isModerator,
 }) {
   const [game, setGame] = useState(initialGame);
   const [posts, setPosts] = useState([]);
@@ -239,6 +241,8 @@ export default function GameFeed({
         onMessagesClick={onMessagesClick}
         unreadCount={unreadCount}
         onBucksClick={onBucksClick}
+        onModPanelClick={onModPanelClick}
+        isModerator={isModerator}
       />
 
       <div className="max-w-2xl mx-auto p-6">

@@ -11,6 +11,8 @@ export default function Navbar({
   onMessagesClick,
   onBucksClick,
   unreadCount = 0,
+  isModerator = false,
+  onModPanelClick,
 }) {
   const [search, setSearch] = useState("");
   const [results, setResults] = useState([]);
@@ -257,6 +259,29 @@ export default function Navbar({
                   <span>👤</span>
                   <span>View Profile</span>
                 </button>
+                {isModerator && (
+                  <button
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      onModPanelClick();
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm transition cursor-pointer"
+                    style={{
+                      color: "#f97316",
+                      borderBottom: "1px solid rgba(255,255,255,0.06)",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background =
+                        "rgba(249,115,22,0.1)")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "transparent")
+                    }
+                  >
+                    <span>🛡️</span>
+                    <span>Moderator Panel</span>
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     setShowProfileMenu(false);
