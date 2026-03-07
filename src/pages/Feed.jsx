@@ -4,6 +4,7 @@ import { moderateContent } from "../utils/moderate";
 import GamesBar from "../components/GamesBar";
 import Navbar from "../components/Navbar";
 import Leaderboard from "../components/Leaderboard";
+import ReportModal from "./ReportModal";
 
 const EMOJIS = ["🔥", "💀", "🐐", "😂", "👀"];
 
@@ -32,6 +33,7 @@ export default function Feed({
   const [moderatorIds, setModeratorIds] = useState(new Set());
   const [visibleTakes, setVisibleTakes] = useState(10);
   const [avatarUrl, setAvatarUrl] = useState(null);
+  const [reportModal, setReportModal] = useState(null);
 
   const fetchModerators = async () => {
     const { data } = await supabase.from("moderators").select("user_id");
@@ -183,6 +185,20 @@ export default function Feed({
 
   return (
     <div className="min-h-screen text-white" style={{ background: "#080810" }}>
+      {/* Report Modal */}
+      {reportModal && (
+        <ReportModal
+          reporter={user}
+          reporterUsername={username}
+          reportedUserId={reportModal.reportedUserId}
+          reportedUsername={reportModal.reportedUsername}
+          contentType={reportModal.contentType}
+          contentId={reportModal.contentId}
+          contentPreview={reportModal.contentPreview}
+          onClose={() => setReportModal(null)}
+        />
+      )}
+
       {/* Top navbar */}
       <Navbar
         username={username}
@@ -341,12 +357,29 @@ export default function Feed({
                       })}
                     </span>
                   </div>
-                  {take.user_id === user?.id && (
+                  {/* Delete own post OR report others' post */}
+                  {take.user_id === user?.id ? (
                     <button
                       onClick={() => deleteTake(take.id)}
                       className="opacity-0 group-hover:opacity-100 text-zinc-700 hover:text-red-400 text-xs transition cursor-pointer px-2 py-1 rounded-lg hover:bg-red-500/10"
                     >
                       ✕
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() =>
+                        setReportModal({
+                          reportedUserId: take.user_id,
+                          reportedUsername: take.username,
+                          contentType: "post",
+                          contentId: take.id,
+                          contentPreview: take.content,
+                        })
+                      }
+                      className="opacity-0 group-hover:opacity-100 text-zinc-700 hover:text-red-400 text-xs transition cursor-pointer px-2 py-1 rounded-lg hover:bg-red-500/10"
+                      title="Report post"
+                    >
+                      🚩
                     </button>
                   )}
                 </div>
@@ -451,12 +484,29 @@ export default function Feed({
                             {c.content}
                           </span>
                         </div>
-                        {c.user_id === user?.id && (
+                        {/* Delete own comment OR report others' comment */}
+                        {c.user_id === user?.id ? (
                           <button
                             onClick={() => deleteComment(c.id)}
                             className="opacity-0 group-hover/comment:opacity-100 text-zinc-700 hover:text-red-400 text-xs transition cursor-pointer mt-1"
                           >
                             ✕
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() =>
+                              setReportModal({
+                                reportedUserId: c.user_id,
+                                reportedUsername: c.username,
+                                contentType: "comment",
+                                contentId: c.id,
+                                contentPreview: c.content,
+                              })
+                            }
+                            className="opacity-0 group-hover/comment:opacity-100 text-zinc-700 hover:text-red-400 text-xs transition cursor-pointer mt-1"
+                            title="Report comment"
+                          >
+                            🚩
                           </button>
                         )}
                       </div>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../supabase";
 import TransactionsModal from "./TransactionsModal";
 import Navbar from "../components/Navbar";
+import ReportModal from "./ReportModal";
 
 const NBA_TEAMS = [
   { name: "Atlanta Hawks", abbr: "ATL" },
@@ -68,6 +69,7 @@ export default function ViewProfile({
   const [gameTakes, setGameTakes] = useState([]);
   const [showTransactions, setShowTransactions] = useState(false);
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState(null);
+  const [reportModal, setReportModal] = useState(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -119,7 +121,6 @@ export default function ViewProfile({
 
       setLoading(false);
     };
-
     loadData();
   }, [username]);
 
@@ -139,18 +140,12 @@ export default function ViewProfile({
   const issueStrike = async () => {
     if (!profile) return;
     setIssuingStrike(true);
-
     const newCount = strikeCount + 1;
     const shouldBan = newCount >= 3;
-
     await supabase
       .from("profiles")
-      .update({
-        strike_count: newCount,
-        is_shadowbanned: shouldBan,
-      })
+      .update({ strike_count: newCount, is_shadowbanned: shouldBan })
       .eq("user_id", profile.user_id);
-
     setStrikeCount(newCount);
     setIsShadowbanned(shouldBan);
     setIssuingStrike(false);
@@ -168,6 +163,20 @@ export default function ViewProfile({
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
+      {/* Report Modal */}
+      {reportModal && (
+        <ReportModal
+          reporter={currentUser}
+          reporterUsername={currentUsername}
+          reportedUserId={reportModal.reportedUserId}
+          reportedUsername={reportModal.reportedUsername}
+          contentType={reportModal.contentType}
+          contentId={reportModal.contentId}
+          contentPreview={reportModal.contentPreview}
+          onClose={() => setReportModal(null)}
+        />
+      )}
+
       <Navbar
         username={currentUsername}
         avatarUrl={currentAvatarUrl}
@@ -184,7 +193,6 @@ export default function ViewProfile({
         onModPanelClick={onModPanelClick}
       />
       <div className="max-w-2xl mx-auto p-6">
-        {/* Back button */}
         <button
           onClick={onBack}
           className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition cursor-pointer mb-6"
@@ -205,7 +213,6 @@ export default function ViewProfile({
             border: "1px solid rgba(255,255,255,0.06)",
           }}
         >
-          {/* Banner */}
           <div
             className="h-24 w-full"
             style={{
@@ -215,7 +222,6 @@ export default function ViewProfile({
           />
 
           <div className="p-6 pt-0">
-            {/* Avatar row */}
             <div className="flex items-end justify-between -mt-10 mb-4">
               <div className="w-20 h-20 rounded-full border-4 border-zinc-950 bg-orange-500 flex items-center justify-center text-2xl font-bold overflow-hidden">
                 {profile?.avatar_url ? (
@@ -228,26 +234,56 @@ export default function ViewProfile({
                   username?.[0]?.toUpperCase()
                 )}
               </div>
-              <button
-                onClick={() =>
-                  onDM({
-                    user_id: profile.user_id,
-                    username,
-                    avatar_url: profile.avatar_url,
-                  })
-                }
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition cursor-pointer"
-                style={{
-                  background: "rgba(249,115,22,0.1)",
-                  border: "1px solid rgba(249,115,22,0.2)",
-                  color: "#f97316",
-                }}
-              >
-                💬 Message
-              </button>
+              {/* Message + Report buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() =>
+                    onDM({
+                      user_id: profile.user_id,
+                      username,
+                      avatar_url: profile.avatar_url,
+                    })
+                  }
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition cursor-pointer"
+                  style={{
+                    background: "rgba(249,115,22,0.1)",
+                    border: "1px solid rgba(249,115,22,0.2)",
+                    color: "#f97316",
+                  }}
+                >
+                  💬 Message
+                </button>
+                <button
+                  onClick={() =>
+                    setReportModal({
+                      reportedUserId: profile.user_id,
+                      reportedUsername: username,
+                      contentType: "profile",
+                      contentId: profile.user_id,
+                      contentPreview: profile.bio || "",
+                    })
+                  }
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition cursor-pointer"
+                  style={{
+                    background: "rgba(239,68,68,0.08)",
+                    border: "1px solid rgba(239,68,68,0.15)",
+                    color: "#71717a",
+                  }}
+                  title="Report profile"
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "#ef4444";
+                    e.currentTarget.style.borderColor = "rgba(239,68,68,0.3)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "#71717a";
+                    e.currentTarget.style.borderColor = "rgba(239,68,68,0.15)";
+                  }}
+                >
+                  🚩
+                </button>
+              </div>
             </div>
 
-            {/* Name & team */}
             <div className="mb-3">
               <h2 className="text-xl font-bold flex items-center gap-2">
                 @{username}
@@ -276,12 +312,10 @@ export default function ViewProfile({
               )}
             </div>
 
-            {/* Bio */}
             <p className="text-zinc-400 text-sm leading-relaxed">
               {profile?.bio || "No bio yet."}
             </p>
 
-            {/* Stats row */}
             <div className="flex gap-6 mt-4 pt-4 border-t border-white/5">
               <div className="text-center">
                 <p className="text-lg font-bold text-white">{takes.length}</p>
@@ -312,7 +346,7 @@ export default function ViewProfile({
           </div>
         </div>
 
-        {/* Mod Panel */}
+        {/* Mod Panel - strike controls */}
         {isModerator && currentUser?.id !== profile?.user_id && (
           <div
             className="rounded-2xl p-5 mb-6"
@@ -324,7 +358,6 @@ export default function ViewProfile({
             <h3 className="text-sm font-semibold text-indigo-400 uppercase tracking-wider mb-4">
               🛡️ Moderator Panel
             </h3>
-
             <div className="flex items-center gap-3 mb-4">
               <div className="flex gap-1">
                 {[1, 2, 3].map((n) => (
@@ -351,7 +384,6 @@ export default function ViewProfile({
                 )}
               </div>
             </div>
-
             <div className="flex gap-2">
               <button
                 onClick={issueStrike}
@@ -427,36 +459,23 @@ export default function ViewProfile({
           className="flex gap-1 p-1 rounded-xl mb-6"
           style={{ background: "rgba(255,255,255,0.05)" }}
         >
-          <button
-            onClick={() => setActiveTab("posts")}
-            className="flex-1 py-2 rounded-lg text-sm font-medium transition"
-            style={{
-              background: activeTab === "posts" ? "#f97316" : "transparent",
-              color: activeTab === "posts" ? "white" : "#71717a",
-            }}
-          >
-            Posts ({takes.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("comments")}
-            className="flex-1 py-2 rounded-lg text-sm font-medium transition"
-            style={{
-              background: activeTab === "comments" ? "#f97316" : "transparent",
-              color: activeTab === "comments" ? "white" : "#71717a",
-            }}
-          >
-            Comments ({comments.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("game")}
-            className="flex-1 py-2 rounded-lg text-sm font-medium transition"
-            style={{
-              background: activeTab === "game" ? "#f97316" : "transparent",
-              color: activeTab === "game" ? "white" : "#71717a",
-            }}
-          >
-            Game Posts ({gameTakes.length})
-          </button>
+          {["posts", "comments", "game"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className="flex-1 py-2 rounded-lg text-sm font-medium transition"
+              style={{
+                background: activeTab === tab ? "#f97316" : "transparent",
+                color: activeTab === tab ? "white" : "#71717a",
+              }}
+            >
+              {tab === "posts"
+                ? `Posts (${takes.length})`
+                : tab === "comments"
+                  ? `Comments (${comments.length})`
+                  : `Game Posts (${gameTakes.length})`}
+            </button>
+          ))}
         </div>
 
         {/* Posts tab */}
@@ -596,6 +615,7 @@ export default function ViewProfile({
             ))}
           </div>
         )}
+
         {showTransactions && (
           <TransactionsModal
             userId={profile?.user_id}

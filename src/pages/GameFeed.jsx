@@ -4,6 +4,7 @@ import { moderateContent } from "../utils/moderate";
 import { placeBet } from "../utils/usePredictions";
 import BetModal from "./BetModal";
 import Navbar from "../components/Navbar";
+import ReportModal from "./ReportModal";
 
 const NBA_TEAM_COLORS = {
   ATL: "#C1272D",
@@ -65,6 +66,7 @@ export default function GameFeed({
   const [newComment, setNewComment] = useState({});
   const [betTarget, setBetTarget] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState(null);
+  const [reportModal, setReportModal] = useState(null);
 
   const homeAbbr = game.home;
   const awayAbbr = game.away;
@@ -73,8 +75,6 @@ export default function GameFeed({
   const isLive = game.status === "inprogress";
   const isScheduled = game.status === "scheduled";
   const isClosed = game.status === "closed";
-
-  // Win probabilities from ESPN
   const homeWinProb = game.win_probability?.[homeAbbr];
   const awayWinProb = game.win_probability?.[awayAbbr];
 
@@ -135,10 +135,7 @@ export default function GameFeed({
       setAvatarUrl(profileData?.avatar_url || null);
     };
     load();
-
-    // Refresh score every 20 seconds
     const scoreInterval = setInterval(fetchLiveGame, 20000);
-
     const channel = supabase
       .channel(`game-feed-${game.id}`)
       .on(
@@ -152,7 +149,6 @@ export default function GameFeed({
         () => fetchComments(),
       )
       .subscribe();
-
     return () => {
       supabase.removeChannel(channel);
       clearInterval(scoreInterval);
@@ -173,12 +169,14 @@ export default function GameFeed({
     } catch {
       /* continue */
     }
-    await supabase.from("game_takes").insert({
-      game_id: game.id,
-      content: newPost,
-      user_id: user.id,
-      username,
-    });
+    await supabase
+      .from("game_takes")
+      .insert({
+        game_id: game.id,
+        content: newPost,
+        user_id: user.id,
+        username,
+      });
     setNewPost("");
     await fetchPosts();
     setLoading(false);
@@ -226,11 +224,24 @@ export default function GameFeed({
 
   const homeColor = NBA_TEAM_COLORS[homeAbbr] || "#f97316";
   const awayColor = NBA_TEAM_COLORS[awayAbbr] || "#888";
-
   const formatProb = (prob) => (prob ? `${Math.round(prob)}%` : "—");
 
   return (
     <div className="min-h-screen text-white" style={{ background: "#080810" }}>
+      {/* Report Modal */}
+      {reportModal && (
+        <ReportModal
+          reporter={user}
+          reporterUsername={username}
+          reportedUserId={reportModal.reportedUserId}
+          reportedUsername={reportModal.reportedUsername}
+          contentType={reportModal.contentType}
+          contentId={reportModal.contentId}
+          contentPreview={reportModal.contentPreview}
+          onClose={() => setReportModal(null)}
+        />
+      )}
+
       <Navbar
         username={username}
         avatarUrl={avatarUrl}
@@ -246,7 +257,6 @@ export default function GameFeed({
       />
 
       <div className="max-w-2xl mx-auto p-6">
-        {/* Back button */}
         <div className="flex items-center gap-4 mb-6">
           <button
             onClick={onBack}
@@ -328,7 +338,6 @@ export default function GameFeed({
           </div>
 
           <div className="flex items-center justify-between px-8 pb-6 pt-4">
-            {/* Away */}
             <div className="flex flex-col items-center gap-3 flex-1">
               <img
                 src={`https://a.espncdn.com/combiner/i?img=/i/teamlogos/nba/500/${awayAbbr.toLowerCase()}.png`}
@@ -359,12 +368,9 @@ export default function GameFeed({
                 </span>
               )}
             </div>
-
             <div className="text-zinc-700 text-2xl font-black px-4">
               {isScheduled ? "VS" : "—"}
             </div>
-
-            {/* Home */}
             <div className="flex flex-col items-center gap-3 flex-1">
               <img
                 src={`https://a.espncdn.com/combiner/i?img=/i/teamlogos/nba/500/${homeAbbr.toLowerCase()}.png`}
@@ -397,7 +403,6 @@ export default function GameFeed({
             </div>
           </div>
 
-          {/* Bet buttons */}
           {!isClosed && (
             <div className="px-6 pb-5 flex gap-3">
               <button
@@ -551,12 +556,29 @@ export default function GameFeed({
                     })}
                   </span>
                 </div>
-                {post.user_id === user?.id && (
+                {/* Delete own post OR report others' post */}
+                {post.user_id === user?.id ? (
                   <button
                     onClick={() => deletePost(post.id)}
                     className="opacity-0 group-hover:opacity-100 text-zinc-700 hover:text-red-400 text-xs transition cursor-pointer px-2 py-1 rounded-lg hover:bg-red-500/10"
                   >
                     ✕
+                  </button>
+                ) : (
+                  <button
+                    onClick={() =>
+                      setReportModal({
+                        reportedUserId: post.user_id,
+                        reportedUsername: post.username,
+                        contentType: "post",
+                        contentId: post.id,
+                        contentPreview: post.content,
+                      })
+                    }
+                    className="opacity-0 group-hover:opacity-100 text-zinc-700 hover:text-red-400 text-xs transition cursor-pointer px-2 py-1 rounded-lg hover:bg-red-500/10"
+                    title="Report post"
+                  >
+                    🚩
                   </button>
                 )}
               </div>
@@ -624,12 +646,29 @@ export default function GameFeed({
                           {c.content}
                         </span>
                       </div>
-                      {c.user_id === user?.id && (
+                      {/* Delete own comment OR report others' comment */}
+                      {c.user_id === user?.id ? (
                         <button
                           onClick={() => deleteComment(c.id)}
                           className="opacity-0 group-hover/comment:opacity-100 text-zinc-700 hover:text-red-400 text-xs transition cursor-pointer mt-1"
                         >
                           ✕
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() =>
+                            setReportModal({
+                              reportedUserId: c.user_id,
+                              reportedUsername: c.username,
+                              contentType: "comment",
+                              contentId: c.id,
+                              contentPreview: c.content,
+                            })
+                          }
+                          className="opacity-0 group-hover/comment:opacity-100 text-zinc-700 hover:text-red-400 text-xs transition cursor-pointer mt-1"
+                          title="Report comment"
+                        >
+                          🚩
                         </button>
                       )}
                     </div>
