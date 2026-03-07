@@ -34,7 +34,7 @@ export default function App() {
   const fetchProfile = async (userId) => {
     try {
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?select=username,nba_bucks&user_id=eq.${userId}&limit=1`,
+        `${SUPABASE_URL}/rest/v1/profiles?select=username,nba_bucks,banned&user_id=eq.${userId}&limit=1`,
         { headers: rawHeaders },
       );
       const data = await res.json();
@@ -185,6 +185,14 @@ export default function App() {
         setSession(session);
 
         const profile = await fetchProfile(session.user.id);
+
+        if (profile?.banned) {
+          await supabase.auth.signOut();
+          setLoading(false);
+          clearTimeout(timeout);
+          return;
+        }
+
         setUsername(profile?.username || null);
         setUserBucks(profile?.nba_bucks ?? 500);
 
