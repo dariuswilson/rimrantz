@@ -24,7 +24,7 @@ const RANK_STYLES = [
 const TABS = [
   { key: "bucks", label: "💰 Bucks" },
   { key: "wins", label: "🏆 Wins" },
-  { key: "winpct", label: "🎯 Win %" },
+  { key: "winpct", label: "🎯 Win%" },
   { key: "today", label: "📈 Today" },
 ];
 
@@ -201,19 +201,22 @@ export default function Leaderboard({ onViewProfile }) {
       </div>
 
       {/* Tabs */}
-      <div
-        className="flex gap-1 p-1 rounded-xl mb-4"
-        style={{ background: "rgba(255,255,255,0.04)" }}
-      >
+      <div className="flex gap-1 mb-4 overflow-x-auto pb-1 scrollbar-hide">
         {TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className="flex-1 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer"
+            className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer"
             style={{
-              background: activeTab === tab.key ? "#f97316" : "transparent",
+              background:
+                activeTab === tab.key
+                  ? "linear-gradient(135deg, #f97316, #ef4444)"
+                  : "rgba(255,255,255,0.06)",
               color: activeTab === tab.key ? "white" : "#71717a",
-              whiteSpace: "nowrap",
+              border:
+                activeTab === tab.key
+                  ? "1px solid transparent"
+                  : "1px solid rgba(255,255,255,0.08)",
             }}
           >
             {tab.label}
