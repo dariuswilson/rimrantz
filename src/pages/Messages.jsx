@@ -2,7 +2,60 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabase";
 import Navbar from "../components/Navbar";
 
-function ConversationList({ conversations, loading, activeConvo, openConvo }) {
+function GroupChatItem({ group, isActive, onClick }) {
+  return (
+    <div
+      onClick={onClick}
+      className="flex items-center gap-3 p-4 cursor-pointer transition"
+      style={{
+        background: isActive ? "rgba(249,115,22,0.1)" : "transparent",
+        borderBottom: "1px solid rgba(255,255,255,0.04)",
+      }}
+    >
+      <div
+        className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
+        style={{ background: "rgba(255,255,255,0.06)" }}
+      >
+        <img
+          src={`https://a.espncdn.com/combiner/i?img=/i/teamlogos/nba/500/${group.id.toLowerCase()}.png`}
+          alt={group.name}
+          className="w-8 h-8"
+          onError={(e) => (e.target.style.display = "none")}
+        />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between">
+          <p className="text-white text-sm font-semibold truncate">
+            {group.name}
+          </p>
+          <span
+            className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 ml-2"
+            style={{
+              background: "rgba(249,115,22,0.15)",
+              color: "#f97316",
+              border: "1px solid rgba(249,115,22,0.2)",
+            }}
+          >
+            Group
+          </span>
+        </div>
+        <p className="text-zinc-500 text-xs truncate mt-0.5">
+          {group.lastMessage || "No messages yet"}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ConversationList({
+  conversations,
+  loading,
+  activeConvo,
+  openConvo,
+  groupChat,
+  activeGroup,
+  openGroup,
+}) {
   return (
     <div
       className="rounded-2xl overflow-hidden flex flex-col h-full"
@@ -19,7 +72,34 @@ function ConversationList({ conversations, loading, activeConvo, openConvo }) {
       </div>
       <div className="flex-1 overflow-y-auto">
         {loading && <p className="text-zinc-500 text-sm p-4">Loading...</p>}
-        {!loading && conversations.length === 0 && (
+
+        {/* Group chat at top */}
+        {!loading && groupChat && (
+          <>
+            <div
+              className="px-4 pt-3 pb-1"
+              style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+            >
+              <p className="text-zinc-600 text-xs font-semibold uppercase tracking-wider">
+                Team Chat
+              </p>
+            </div>
+            <GroupChatItem
+              group={groupChat}
+              isActive={activeGroup?.id === groupChat.id}
+              onClick={() => openGroup(groupChat)}
+            />
+            {conversations.length > 0 && (
+              <div className="px-4 pt-3 pb-1">
+                <p className="text-zinc-600 text-xs font-semibold uppercase tracking-wider">
+                  Direct Messages
+                </p>
+              </div>
+            )}
+          </>
+        )}
+
+        {!loading && conversations.length === 0 && !groupChat && (
           <div className="text-center p-6">
             <p className="text-3xl mb-2">💬</p>
             <p className="text-zinc-500 text-xs">
@@ -27,6 +107,7 @@ function ConversationList({ conversations, loading, activeConvo, openConvo }) {
             </p>
           </div>
         )}
+
         {conversations.map((convo) => (
           <div
             key={convo.user_id}
@@ -71,6 +152,208 @@ function ConversationList({ conversations, loading, activeConvo, openConvo }) {
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function GroupChatView({
+  group,
+  messages,
+  newMessage,
+  setNewMessage,
+  sendGroupMessage,
+  setMobileView,
+  user,
+
+  bottomRef,
+  members,
+  showMembers,
+  setShowMembers,
+}) {
+  return (
+    <div
+      className="rounded-2xl overflow-hidden flex flex-col h-full"
+      style={{
+        background: "linear-gradient(135deg, #0f0f1a 0%, #151525 100%)",
+        border: "1px solid rgba(255,255,255,0.08)",
+      }}
+    >
+      {/* Header */}
+      <div
+        className="flex items-center gap-3 p-4 border-b"
+        style={{ borderColor: "rgba(255,255,255,0.06)" }}
+      >
+        <button
+          onClick={() => setMobileView("list")}
+          className="lg:hidden p-1.5 rounded-lg text-zinc-400 hover:text-white transition"
+          style={{ background: "rgba(255,255,255,0.06)" }}
+        >
+          ←
+        </button>
+        <div
+          className="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0"
+          style={{ background: "rgba(255,255,255,0.06)" }}
+        >
+          <img
+            src={`https://a.espncdn.com/combiner/i?img=/i/teamlogos/nba/500/${group.id.toLowerCase()}.png`}
+            alt={group.name}
+            className="w-7 h-7"
+            onError={(e) => (e.target.style.display = "none")}
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-white font-semibold text-sm">{group.name}</p>
+          <p className="text-zinc-500 text-xs">Team Chat</p>
+        </div>
+        {/* Members button */}
+        <button
+          onClick={() => setShowMembers(!showMembers)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition cursor-pointer"
+          style={{
+            background: showMembers
+              ? "rgba(249,115,22,0.2)"
+              : "rgba(255,255,255,0.06)",
+            border: showMembers
+              ? "1px solid rgba(249,115,22,0.3)"
+              : "1px solid rgba(255,255,255,0.08)",
+            color: showMembers ? "#f97316" : "#71717a",
+          }}
+        >
+          👥 {members.length}
+        </button>
+      </div>
+
+      {/* Members panel */}
+      {showMembers && (
+        <div
+          className="p-4 border-b"
+          style={{
+            borderColor: "rgba(255,255,255,0.06)",
+            background: "rgba(255,255,255,0.02)",
+          }}
+        >
+          <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider mb-3">
+            Members ({members.length})
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {members.map((m) => (
+              <div
+                key={m.user_id}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+                style={{
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                }}
+              >
+                <div className="w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center text-xs font-bold overflow-hidden flex-shrink-0">
+                  {m.avatar_url ? (
+                    <img
+                      src={m.avatar_url}
+                      alt="avatar"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    m.username?.[0]?.toUpperCase()
+                  )}
+                </div>
+                <span className="text-zinc-300 text-xs">@{m.username}</span>
+                {m.user_id === user.id && (
+                  <span className="text-orange-400 text-xs">(you)</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {messages.map((msg) => {
+          const isMine = msg.sender_id === user.id;
+          return (
+            <div
+              key={msg.id}
+              className={`flex ${isMine ? "justify-end" : "justify-start"} gap-2`}
+            >
+              {!isMine && (
+                <div className="w-7 h-7 rounded-full bg-orange-500 flex items-center justify-center text-xs font-bold flex-shrink-0 overflow-hidden self-end">
+                  {msg.sender_avatar ? (
+                    <img
+                      src={msg.sender_avatar}
+                      alt="avatar"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    msg.sender_username?.[0]?.toUpperCase()
+                  )}
+                </div>
+              )}
+              <div
+                className={`max-w-xs ${!isMine ? "items-start" : "items-end"} flex flex-col`}
+              >
+                {!isMine && (
+                  <p className="text-zinc-500 text-xs mb-1 ml-1">
+                    @{msg.sender_username}
+                  </p>
+                )}
+                <div
+                  className="px-4 py-2.5 text-sm"
+                  style={{
+                    background: isMine
+                      ? "linear-gradient(135deg, #f97316, #ef4444)"
+                      : "rgba(255,255,255,0.08)",
+                    color: "white",
+                    borderRadius: isMine
+                      ? "18px 18px 4px 18px"
+                      : "18px 18px 18px 4px",
+                  }}
+                >
+                  <p className="leading-relaxed">{msg.content}</p>
+                  <p className="text-xs mt-1 opacity-60">
+                    {new Date(msg.created_at).toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      <div
+        className="p-4 border-t"
+        style={{ borderColor: "rgba(255,255,255,0.06)" }}
+      >
+        <div className="flex gap-3">
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && sendGroupMessage()}
+            placeholder={`Message ${group.name}...`}
+            className="flex-1 text-white text-sm px-4 py-3 rounded-xl outline-none"
+            style={{
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.1)",
+            }}
+          />
+          <button
+            onClick={sendGroupMessage}
+            disabled={!newMessage.trim()}
+            className="px-5 py-3 rounded-xl text-sm font-bold transition cursor-pointer disabled:opacity-40"
+            style={{
+              background: "linear-gradient(135deg, #f97316, #ef4444)",
+              color: "white",
+            }}
+          >
+            Send
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -220,23 +503,70 @@ export default function Messages({
   initialConvo,
   onMessagesClick,
   unreadCount,
+  onBucksClick,
 }) {
   const [conversations, setConversations] = useState([]);
   const [activeConvo, setActiveConvo] = useState(null);
+  const [activeGroup, setActiveGroup] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [groupMessages, setGroupMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [mobileView, setMobileView] = useState("list");
+  const [groupChat, setGroupChat] = useState(null);
+  const [groupMembers, setGroupMembers] = useState([]);
+  const [showMembers, setShowMembers] = useState(false);
   const bottomRef = useRef(null);
 
   const fetchAvatarUrl = async () => {
     const { data } = await supabase
       .from("profiles")
-      .select("avatar_url")
+      .select("avatar_url, favorite_team")
       .eq("user_id", user.id)
       .single();
     setAvatarUrl(data?.avatar_url || null);
+    return data?.favorite_team || null;
+  };
+
+  const fetchGroupChat = async (teamAbbr) => {
+    if (!teamAbbr) return;
+    const { data: group } = await supabase
+      .from("team_groups")
+      .select("*")
+      .eq("id", teamAbbr)
+      .single();
+    if (!group) return;
+
+    // Get last message
+    const { data: lastMsg } = await supabase
+      .from("messages")
+      .select("content")
+      .eq("group_id", teamAbbr)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    setGroupChat({
+      ...group,
+      lastMessage: lastMsg?.content || null,
+    });
+
+    // Get members
+    const { data: members } = await supabase
+      .from("profiles")
+      .select("user_id, username, avatar_url")
+      .eq("favorite_team", teamAbbr);
+    setGroupMembers(members || []);
+  };
+
+  const fetchGroupMessages = async (teamAbbr) => {
+    const { data } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("group_id", teamAbbr)
+      .order("created_at", { ascending: true });
+    setGroupMessages(data || []);
   };
 
   const fetchConversations = async () => {
@@ -244,6 +574,7 @@ export default function Messages({
       .from("messages")
       .select("*")
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+      .is("group_id", null)
       .order("created_at", { ascending: false });
 
     if (!data) {
@@ -293,6 +624,7 @@ export default function Messages({
       .or(
         `and(sender_id.eq.${user.id},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${user.id})`,
       )
+      .is("group_id", null)
       .order("created_at", { ascending: true });
     setMessages(data || []);
     await supabase
@@ -305,8 +637,9 @@ export default function Messages({
 
   useEffect(() => {
     const init = async () => {
-      await fetchAvatarUrl();
+      const favoriteTeam = await fetchAvatarUrl();
       await fetchConversations();
+      if (favoriteTeam) await fetchGroupChat(favoriteTeam);
       if (initialConvo) {
         setActiveConvo(initialConvo);
         setMobileView("chat");
@@ -321,6 +654,7 @@ export default function Messages({
         { event: "INSERT", schema: "public", table: "messages" },
         () => {
           fetchConversations();
+          if (activeGroup) fetchGroupMessages(activeGroup.id);
         },
       )
       .subscribe();
@@ -339,7 +673,7 @@ export default function Messages({
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, groupMessages]);
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !activeConvo) return;
@@ -354,12 +688,35 @@ export default function Messages({
     await fetchMessages(activeConvo.user_id);
   };
 
+  const sendGroupMessage = async () => {
+    if (!newMessage.trim() || !activeGroup) return;
+    await supabase.from("messages").insert({
+      sender_id: user.id,
+      sender_username: username,
+      group_id: activeGroup.id,
+      content: newMessage.trim(),
+    });
+    setNewMessage("");
+    await fetchGroupMessages(activeGroup.id);
+  };
+
   const openConvo = (convo) => {
     setActiveConvo(convo);
+    setActiveGroup(null);
     setMobileView("chat");
   };
 
-  const sharedProps = {
+  const openGroup = async (group) => {
+    setActiveGroup(group);
+    setActiveConvo(null);
+    setShowMembers(false);
+    setMobileView("chat");
+    await fetchGroupMessages(group.id);
+  };
+
+  const isGroupActive = !!activeGroup;
+
+  const sharedDMProps = {
     activeConvo,
     messages,
     newMessage,
@@ -370,6 +727,26 @@ export default function Messages({
     user,
     bottomRef,
   };
+
+  const sharedGroupProps = {
+    group: activeGroup,
+    messages: groupMessages,
+    newMessage,
+    setNewMessage,
+    sendGroupMessage,
+    setMobileView,
+    user,
+    bottomRef,
+    members: groupMembers,
+    showMembers,
+    setShowMembers,
+  };
+
+  const chatPanel = isGroupActive ? (
+    <GroupChatView {...sharedGroupProps} />
+  ) : (
+    <ChatView {...sharedDMProps} />
+  );
 
   return (
     <div className="min-h-screen text-white" style={{ background: "#080810" }}>
@@ -382,6 +759,7 @@ export default function Messages({
         onViewProfile={onViewProfile}
         onMessagesClick={onMessagesClick}
         unreadCount={unreadCount}
+        onBucksClick={onBucksClick}
       />
 
       <div className="max-w-4xl mx-auto p-4 md:p-6">
@@ -408,11 +786,12 @@ export default function Messages({
               loading={loading}
               activeConvo={activeConvo}
               openConvo={openConvo}
+              groupChat={groupChat}
+              activeGroup={activeGroup}
+              openGroup={openGroup}
             />
           </div>
-          <div className="flex-1">
-            <ChatView {...sharedProps} />
-          </div>
+          <div className="flex-1">{chatPanel}</div>
         </div>
 
         {/* Mobile */}
@@ -423,9 +802,12 @@ export default function Messages({
               loading={loading}
               activeConvo={activeConvo}
               openConvo={openConvo}
+              groupChat={groupChat}
+              activeGroup={activeGroup}
+              openGroup={openGroup}
             />
           ) : (
-            <ChatView {...sharedProps} />
+            chatPanel
           )}
         </div>
       </div>
