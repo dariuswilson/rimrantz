@@ -87,10 +87,6 @@ export default function Login({ isBanned = false }) {
           {isSignUp ? "Create your account" : "Welcome back"}
         </p>
 
-        <p className="text-zinc-400 text-sm mb-8">
-          {isSignUp ? "Create your account" : "Welcome back"}
-        </p>
-
         {verified ? (
           <div className="text-center py-6">
             <p className="text-4xl mb-4">📧</p>
