@@ -38,6 +38,7 @@ export default function ModeratorPanel({
   const [filter, setFilter] = useState("pending");
   const [expanded, setExpanded] = useState(null);
   const [actioning, setActioning] = useState(null);
+  const [shadowbanned, setShadowbanned] = useState([]);
 
   const fetchReports = async () => {
     setLoading(true);
@@ -51,9 +52,18 @@ export default function ModeratorPanel({
     setLoading(false);
   };
 
+  const fetchShadowbanned = async () => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("user_id, username, strike_count, avatar_url")
+      .eq("is_shadowbanned", true);
+    setShadowbanned(data || []);
+  };
+
   useEffect(() => {
     const load = async () => {
       await fetchReports();
+      await fetchShadowbanned();
     };
     load();
   }, [filter]);
@@ -159,30 +169,105 @@ export default function ModeratorPanel({
 
         {/* Filter tabs */}
         <div className="flex gap-2 mb-6">
-          {["pending", "resolved", "dismissed", "all"].map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className="px-4 py-2 rounded-xl text-xs font-semibold transition cursor-pointer capitalize"
-              style={{
-                background:
-                  filter === f
-                    ? "linear-gradient(135deg, #f97316, #ef4444)"
-                    : "rgba(255,255,255,0.05)",
-                color: filter === f ? "white" : "#71717a",
-                border:
-                  filter === f
-                    ? "1px solid transparent"
-                    : "1px solid rgba(255,255,255,0.08)",
-              }}
-            >
-              {f}
-            </button>
-          ))}
+          {["pending", "resolved", "dismissed", "all", "shadowbanned"].map(
+            (f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold transition cursor-pointer capitalize"
+                style={{
+                  background:
+                    filter === f
+                      ? "linear-gradient(135deg, #f97316, #ef4444)"
+                      : "rgba(255,255,255,0.05)",
+                  color: filter === f ? "white" : "#71717a",
+                  border:
+                    filter === f
+                      ? "1px solid transparent"
+                      : "1px solid rgba(255,255,255,0.08)",
+                }}
+              >
+                {f}
+              </button>
+            ),
+          )}
         </div>
 
         {/* Reports */}
-        {loading ? (
+        {filter === "shadowbanned" ? (
+          <div className="space-y-3">
+            {shadowbanned.length === 0 ? (
+              <div
+                className="rounded-2xl p-12 text-center"
+                style={{
+                  background:
+                    "linear-gradient(135deg, #0f0f1a 0%, #151525 100%)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                }}
+              >
+                <p className="text-4xl mb-3">✅</p>
+                <p className="text-white font-semibold">
+                  No shadowbanned users
+                </p>
+              </div>
+            ) : (
+              shadowbanned.map((u) => (
+                <div
+                  key={u.user_id}
+                  className="flex items-center gap-3 p-4 rounded-2xl"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #0f0f1a 0%, #151525 100%)",
+                    border: "1px solid rgba(255,255,255,0.06)",
+                  }}
+                >
+                  <div
+                    onClick={() => onViewProfile(u.username)}
+                    className="w-9 h-9 rounded-full bg-orange-500 flex items-center justify-center text-sm font-bold overflow-hidden flex-shrink-0 cursor-pointer"
+                  >
+                    {u.avatar_url ? (
+                      <img
+                        src={u.avatar_url}
+                        alt="avatar"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      u.username?.[0]?.toUpperCase()
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p
+                      className="text-white text-sm font-medium cursor-pointer hover:text-orange-400 transition"
+                      onClick={() => onViewProfile(u.username)}
+                    >
+                      @{u.username}
+                    </p>
+                    <p className="text-red-400 text-xs">
+                      {u.strike_count}/3 strikes
+                    </p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      await supabase
+                        .from("profiles")
+                        .update({ is_shadowbanned: false, strike_count: 0 })
+                        .eq("user_id", u.user_id);
+                      fetchShadowbanned();
+                    }}
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer"
+                    style={{
+                      background: "rgba(34,197,94,0.15)",
+                      border: "1px solid rgba(34,197,94,0.3)",
+                      color: "#22c55e",
+                    }}
+                  >
+                    ✓ Unban
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        ) : loading ? (
           <div className="space-y-3">
             {Array.from({ length: 4 }).map((_, i) => (
               <div
