@@ -40,7 +40,7 @@ export default function Login({ isBanned = false }) {
         if (profile?.banned) {
           await supabase.auth.signOut();
           setError(
-            "🔨 Your account has been banned for violating community guidelines. If you believe this is a mistake, please contact support.",
+            "Your account has been banned for violating community guidelines. If you believe this is a mistake, please contact support.",
           );
         }
       }

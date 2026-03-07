@@ -229,6 +229,12 @@ export default function App() {
       setSession(session);
       if (session) {
         const profile = await fetchProfile(session.user.id);
+
+        if (profile?.banned) {
+          await supabase.auth.signOut();
+          setIsBanned(true);
+          return;
+        }
         setUsername(profile?.username || null);
         setUserBucks(profile?.nba_bucks ?? 500);
         const isMod = await fetchModerator(session.user.id);
