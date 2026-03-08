@@ -73,37 +73,31 @@ export default function ModeratorPanel({
     try {
       // Handle action
       if (action === "delete_content") {
-        const table =
-          report.content_type === "post"
-            ? "posts"
-            : report.content_type === "comment"
-              ? "comments"
-              : report.content_type === "group_message"
-                ? "messages"
-                : null;
-        if (table && report.content_id) {
-          await supabase.from(table).delete().eq("id", report.content_id);
+        if (report.content_type === "post") {
+          // Try takes first, then game_takes
+          const { error: e1 } = await supabase
+            .from("takes")
+            .delete()
+            .eq("id", report.content_id);
+          if (e1)
+            await supabase
+              .from("game_takes")
+              .delete()
+              .eq("id", report.content_id);
+        } else if (report.content_type === "comment") {
+          // Try comments first, then game_take_comments
+          const { error: e2 } = await supabase
+            .from("comments")
+            .delete()
+            .eq("id", report.content_id);
+          if (e2)
+            await supabase
+              .from("game_take_comments")
+              .delete()
+              .eq("id", report.content_id);
+        } else if (report.content_type === "group_message") {
+          await supabase.from("messages").delete().eq("id", report.content_id);
         }
-      } else if (action === "shadowban") {
-        await supabase
-          .from("profiles")
-          .update({ is_shadowbanned: true })
-          .eq("user_id", report.reported_user_id);
-      } else if (action === "strike") {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("strike_count")
-          .eq("user_id", report.reported_user_id)
-          .single();
-        await supabase
-          .from("profiles")
-          .update({ strike_count: (profile?.strike_count || 0) + 1 })
-          .eq("user_id", report.reported_user_id);
-      } else if (action === "ban") {
-        await supabase
-          .from("profiles")
-          .update({ banned: true })
-          .eq("user_id", report.reported_user_id);
       }
 
       // Mark report resolved

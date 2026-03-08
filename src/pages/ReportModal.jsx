@@ -26,7 +26,7 @@ export default function ReportModal({
   const submit = async () => {
     if (!reason) return;
     setSubmitting(true);
-    await supabase.from("reports").insert({
+    const { error: reportError } = await supabase.from("reports").insert({
       reporter_id: reporter.id,
       reporter_username: reporterUsername,
       reported_user_id: reportedUserId,
@@ -37,6 +37,10 @@ export default function ReportModal({
       reason,
       status: "pending",
     });
+    if (reportError) {
+      console.error("Report insert error:", reportError);
+      return;
+    }
     setDone(true);
     setSubmitting(false);
     setTimeout(onClose, 1500);
