@@ -9,7 +9,7 @@ export default function BetModal({
   onClose,
 }) {
   const [amount, setAmount] = useState("");
-  const isLoading = false;
+  const [isLoading, setIsLoading] = useState(false); // ← was hardcoded false before
 
   const numAmount = parseInt(amount) || 0;
 
@@ -27,11 +27,21 @@ export default function BetModal({
   const awayAbbr = game.away;
   const opponentTeam = team === homeAbbr ? awayAbbr : homeAbbr;
 
+  const handleConfirm = async () => {
+    if (isLoading || !isValid) return; // ← double-click guard
+    setIsLoading(true);
+    try {
+      await onConfirm(numAmount, odds, payout);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)" }}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onClick={(e) => e.target === e.currentTarget && !isLoading && onClose()}
     >
       <div
         className="w-full max-w-sm rounded-2xl p-6"
@@ -44,7 +54,7 @@ export default function BetModal({
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-white font-bold text-lg">Place Bet</h2>
           <button
-            onClick={onClose}
+            onClick={() => !isLoading && onClose()}
             className="text-zinc-500 hover:text-white transition cursor-pointer"
           >
             ✕
@@ -108,10 +118,12 @@ export default function BetModal({
             onChange={(e) => setAmount(e.target.value)}
             min={10}
             max={userBucks}
+            disabled={isLoading}
             className="w-full text-white text-sm px-4 py-3 rounded-xl outline-none"
             style={{
               background: "rgba(255,255,255,0.06)",
               border: "1px solid rgba(255,255,255,0.1)",
+              opacity: isLoading ? 0.5 : 1,
             }}
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 text-xs">
@@ -126,7 +138,8 @@ export default function BetModal({
             .map((v) => (
               <button
                 key={v}
-                onClick={() => setAmount(String(v))}
+                onClick={() => !isLoading && setAmount(String(v))}
+                disabled={isLoading}
                 className="flex-1 py-1.5 rounded-lg text-xs transition cursor-pointer"
                 style={{
                   background:
@@ -144,7 +157,8 @@ export default function BetModal({
               </button>
             ))}
           <button
-            onClick={() => setAmount(String(userBucks))}
+            onClick={() => !isLoading && setAmount(String(userBucks))}
+            disabled={isLoading}
             className="flex-1 py-1.5 rounded-lg text-xs transition cursor-pointer"
             style={{
               background:
@@ -200,15 +214,16 @@ export default function BetModal({
         )}
 
         <button
-          onClick={() => onConfirm(numAmount, odds, payout)}
+          onClick={handleConfirm}
           disabled={!isValid || isLoading}
           className="w-full py-3 rounded-xl text-sm font-bold transition cursor-pointer disabled:opacity-40"
           style={{
             background: "linear-gradient(135deg, #f97316, #ef4444)",
             color: "white",
+            pointerEvents: isLoading ? "none" : "auto", // extra safety layer
           }}
         >
-          Confirm Bet 🏀
+          {isLoading ? "Placing Bet..." : "Confirm Bet 🏀"}
         </button>
       </div>
     </div>
