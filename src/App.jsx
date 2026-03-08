@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabase";
 import Login from "./pages/Login";
 import Feed from "./pages/Feed";
@@ -23,6 +23,7 @@ export default function App() {
   const [showTransactions, setShowTransactions] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isBanned, setIsBanned] = useState(false);
+  const settleIntervalRef = useRef(null);
 
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
   const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -204,6 +205,12 @@ export default function App() {
         await fetchUnreadCount(session.user.id);
         await settleUserBets(session.user.id);
 
+        // Re-check every 2 minutes while app is open
+        settleIntervalRef.current = setInterval(
+          () => settleUserBets(session.user.id),
+          120000,
+        );
+
         // eslint-disable-next-line no-unused-vars
         const msgChannel = supabase
           .channel("unread-count")
@@ -250,6 +257,7 @@ export default function App() {
     return () => {
       subscription.unsubscribe();
       clearTimeout(timeout);
+      clearInterval(settleIntervalRef.current);
     };
   }, []);
 

@@ -52,7 +52,8 @@ export const settlePredictions = async (userId, games, onBucksUpdate) => {
     .from("predictions")
     .select("*")
     .eq("user_id", userId)
-    .eq("status", "pending");
+    .eq("status", "pending")
+    .is("settled_at", null);
 
   if (!pending || pending.length === 0) return;
 
@@ -60,6 +61,50 @@ export const settlePredictions = async (userId, games, onBucksUpdate) => {
   const finishedIds = new Set(finishedGames.map((g) => g.id));
 
   let totalWinnings = 0;
+
+  const ABBR_MAP = {
+    // Non-standard → Standard
+    GS: "GSW",
+    SA: "SAS",
+    NO: "NOP",
+    WSH: "WAS",
+    NY: "NYK",
+    UTAH: "UTA",
+    BRK: "BKN",
+    CHO: "CHA",
+    // Standard → Standard (identity mappings, just to be safe)
+    ATL: "ATL",
+    BOS: "BOS",
+    BKN: "BKN",
+    CHA: "CHA",
+    CHI: "CHI",
+    CLE: "CLE",
+    DAL: "DAL",
+    DEN: "DEN",
+    DET: "DET",
+    GSW: "GSW",
+    HOU: "HOU",
+    IND: "IND",
+    LAC: "LAC",
+    LAL: "LAL",
+    MEM: "MEM",
+    MIA: "MIA",
+    MIL: "MIL",
+    MIN: "MIN",
+    NOP: "NOP",
+    NYK: "NYK",
+    OKC: "OKC",
+    ORL: "ORL",
+    PHI: "PHI",
+    PHX: "PHX",
+    POR: "POR",
+    SAC: "SAC",
+    SAS: "SAS",
+    TOR: "TOR",
+    UTA: "UTA",
+    WAS: "WAS",
+  };
+  const normalize = (t) => ABBR_MAP[t] || t;
 
   for (const pred of pending) {
     if (!finishedIds.has(pred.game_id)) continue;
@@ -70,7 +115,7 @@ export const settlePredictions = async (userId, games, onBucksUpdate) => {
     const homeScore = game.score[game.home];
     const awayScore = game.score[game.away];
     const winner = homeScore > awayScore ? game.home : game.away;
-    const won = winner === pred.team_picked;
+    const won = normalize(winner) === normalize(pred.team_picked);
 
     await supabase
       .from("predictions")
