@@ -149,19 +149,20 @@ export default function App() {
         if (won) totalWinnings += pred.payout;
       }
 
-      if (totalWinnings > 0) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("nba_bucks")
-          .eq("user_id", userId)
-          .single();
-        const newBalance = (profile?.nba_bucks || 0) + totalWinnings;
-        await supabase
-          .from("profiles")
-          .update({ nba_bucks: newBalance })
-          .eq("user_id", userId);
-        setUserBucks(newBalance);
-      }
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("nba_bucks")
+        .eq("user_id", userId)
+        .single();
+
+      let newBalance = (profile?.nba_bucks || 0) + totalWinnings;
+      if (newBalance <= 0) newBalance = 10;
+
+      await supabase
+        .from("profiles")
+        .update({ nba_bucks: newBalance })
+        .eq("user_id", userId);
+      setUserBucks(newBalance);
     } catch {
       /* continue */
     }
