@@ -30,7 +30,6 @@ const BLOCKED_TERMS = [
   "raghead",
   "towelhead",
   "coon",
-  "jungle",
   "zipperhead",
 
   // Homophobic slurs
@@ -38,8 +37,6 @@ const BLOCKED_TERMS = [
   "fag",
   "dyke",
   "tranny",
-  "homo",
-  "queer",
 
   // Sexual terms
   "penis",
@@ -47,7 +44,6 @@ const BLOCKED_TERMS = [
   "boobs",
   "tits",
   "porn",
-  "sex",
   "nude",
   "naked",
   "horny",
