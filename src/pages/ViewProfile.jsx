@@ -171,7 +171,7 @@ export default function ViewProfile({
         />
       )}
 
-      <Navbar {...props} avatarUrl={currentAvatarUrl} />
+      <Navbar {...props} avatarUrl={currentAvatarUrl} username={username} />
       <div className="max-w-2xl mx-auto p-6">
         <button
           onClick={onBack}
