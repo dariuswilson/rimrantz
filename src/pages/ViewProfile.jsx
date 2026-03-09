@@ -175,6 +175,7 @@ export default function ViewProfile({
         {...props}
         avatarUrl={currentAvatarUrl}
         username={currentUsername}
+        isModerator={isModerator}
       />
       <div className="max-w-2xl mx-auto p-6">
         <button
