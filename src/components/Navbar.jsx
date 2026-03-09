@@ -10,6 +10,7 @@ export default function Navbar({
   onViewProfile,
   onMessagesClick,
   onBucksClick,
+  onShopClick,
   unreadCount = 0,
   isModerator = false,
   onModPanelClick,
@@ -19,8 +20,10 @@ export default function Navbar({
   const [showResults, setShowResults] = useState(false);
   const [searching, setSearching] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showBucksMenu, setShowBucksMenu] = useState(false);
   const searchRef = useRef(null);
   const profileRef = useRef(null);
+  const bucksRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -30,6 +33,9 @@ export default function Navbar({
       }
       if (profileRef.current && !profileRef.current.contains(e.target)) {
         setShowProfileMenu(false);
+      }
+      if (bucksRef.current && !bucksRef.current.contains(e.target)) {
+        setShowBucksMenu(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -75,12 +81,11 @@ export default function Navbar({
       <div className="w-full px-3 py-3 flex items-center gap-2">
         {/* Logo */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
-            style={{ background: "linear-gradient(135deg, #f97316, #ef4444)" }}
-          >
-            🏀
-          </div>
+          <img
+            src="/favicon.png"
+            alt="RimRantz"
+            className="w-8 h-8 rounded-lg flex-shrink-0"
+          />
           <span
             className="font-black text-lg tracking-tight hidden md:block"
             style={{
@@ -89,7 +94,7 @@ export default function Navbar({
               WebkitTextFillColor: "transparent",
             }}
           >
-            HotTakes
+            RimRantz
           </span>
         </div>
 
@@ -174,19 +179,81 @@ export default function Navbar({
 
         {/* Right side */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          {/* Bucks */}
-          <div
-            onClick={onBucksClick}
-            className="flex items-center gap-1 px-2 py-2 rounded-xl text-sm flex-shrink-0 cursor-pointer hover:opacity-80 transition"
-            style={{
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            <span>💰</span>
-            <span className="text-white font-bold text-xs">
-              {userBucks?.toLocaleString()}
-            </span>
+          {/* Bucks dropdown */}
+          <div className="relative flex-shrink-0" ref={bucksRef}>
+            <div
+              onClick={() => setShowBucksMenu((v) => !v)}
+              className="flex items-center gap-1 px-2 py-2 rounded-xl text-sm flex-shrink-0 cursor-pointer hover:opacity-80 transition"
+              style={{
+                background: showBucksMenu
+                  ? "rgba(249,115,22,0.15)"
+                  : "rgba(255,255,255,0.05)",
+                border: showBucksMenu
+                  ? "1px solid rgba(249,115,22,0.3)"
+                  : "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <span>💰</span>
+              <span className="text-white font-bold text-xs">
+                {userBucks?.toLocaleString()}
+              </span>
+            </div>
+
+            {/* Bucks dropdown menu */}
+            {showBucksMenu && (
+              <div
+                className="absolute top-full right-0 mt-2 w-48 rounded-2xl overflow-hidden z-50"
+                style={{
+                  background:
+                    "linear-gradient(135deg, #0f0f1a 0%, #151525 100%)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  boxShadow: "0 20px 40px rgba(0,0,0,0.6)",
+                }}
+              >
+                {/* Balance header */}
+                <div
+                  className="px-4 py-3"
+                  style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+                >
+                  <p className="text-zinc-500 text-xs mb-1">Your balance</p>
+                  <p className="text-white font-bold text-sm">
+                    💰 {userBucks?.toLocaleString()} NBA Bucks
+                  </p>
+                </div>
+
+                {/* Transactions */}
+                <button
+                  onClick={() => {
+                    setShowBucksMenu(false);
+                    onBucksClick();
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/5 transition cursor-pointer"
+                  style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+                >
+                  <span>📋</span>
+                  <span>Transactions</span>
+                </button>
+
+                {/* Shop */}
+                <button
+                  onClick={() => {
+                    setShowBucksMenu(false);
+                    onShopClick?.();
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm transition cursor-pointer"
+                  style={{ color: "#f97316" }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = "rgba(249,115,22,0.08)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = "transparent")
+                  }
+                >
+                  <span>🛍️</span>
+                  <span className="font-semibold">Shop</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Messages */}

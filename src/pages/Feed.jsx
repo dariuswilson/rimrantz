@@ -21,6 +21,7 @@ export default function Feed({
   unreadCount,
   isModerator,
   onModPanelClick,
+  onShopClick,
 }) {
   const [takes, setTakes] = useState([]);
   const [newTake, setNewTake] = useState("");
@@ -212,6 +213,7 @@ export default function Feed({
         unreadCount={unreadCount}
         isModerator={isModerator}
         onModPanelClick={onModPanelClick}
+        onShopClick={onShopClick}
       />
       <div className="max-w-5xl mx-auto px-6 py-6 flex gap-6">
         <div className="w-72 flex-shrink-0 hidden lg:block">

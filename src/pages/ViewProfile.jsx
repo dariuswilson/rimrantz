@@ -53,6 +53,7 @@ export default function ViewProfile({
   onBucksClick,
   unreadCount,
   onModPanelClick,
+  onShopClick,
 }) {
   const [profile, setProfile] = useState(null);
   const [takes, setTakes] = useState([]);
@@ -191,6 +192,7 @@ export default function ViewProfile({
         unreadCount={unreadCount}
         isModerator={isModerator}
         onModPanelClick={onModPanelClick}
+        onShopClick={onShopClick}
       />
       <div className="max-w-2xl mx-auto p-6">
         <button

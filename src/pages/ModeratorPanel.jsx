@@ -32,6 +32,7 @@ export default function ModeratorPanel({
   onBucksClick,
   unreadCount,
   onModPanelClick,
+  onShopClick,
 }) {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -155,6 +156,7 @@ export default function ModeratorPanel({
         unreadCount={unreadCount}
         isModerator={isModerator}
         onModPanelClick={onModPanelClick}
+        onShopClick={onShopClick}
       />
 
       <div className="max-w-3xl mx-auto p-4 md:p-6">

@@ -54,6 +54,7 @@ export default function GameFeed({
   onBucksClick,
   onModPanelClick,
   isModerator,
+  onShopClick,
 }) {
   const [game, setGame] = useState(initialGame);
   const [posts, setPosts] = useState([]);
@@ -169,14 +170,12 @@ export default function GameFeed({
     } catch {
       /* continue */
     }
-    await supabase
-      .from("game_takes")
-      .insert({
-        game_id: game.id,
-        content: newPost,
-        user_id: user.id,
-        username,
-      });
+    await supabase.from("game_takes").insert({
+      game_id: game.id,
+      content: newPost,
+      user_id: user.id,
+      username,
+    });
     setNewPost("");
     await fetchPosts();
     setLoading(false);
@@ -254,6 +253,7 @@ export default function GameFeed({
         onBucksClick={onBucksClick}
         onModPanelClick={onModPanelClick}
         isModerator={isModerator}
+        onShopClick={onShopClick}
       />
 
       <div className="max-w-2xl mx-auto p-6">

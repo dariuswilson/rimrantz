@@ -9,6 +9,7 @@ import GameFeed from "./pages/GameFeed";
 import Messages from "./pages/Messages";
 import TransactionsModal from "./pages/TransactionsModal";
 import ModeratorPanel from "./pages/ModeratorPanel";
+import Shop from "./pages/Shop";
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -305,6 +306,7 @@ export default function App() {
           }}
           onBucksClick={() => setShowTransactions(true)}
           unreadCount={unreadCount}
+          onShopClick={() => setPage("shop")}
         />
       )}
 
@@ -331,6 +333,7 @@ export default function App() {
           }}
           unreadCount={unreadCount}
           onBucksClick={() => setShowTransactions(true)}
+          onShopClick={() => setPage("shop")}
         />
       )}
 
@@ -355,6 +358,7 @@ export default function App() {
           }}
           unreadCount={unreadCount}
           onBucksClick={() => setShowTransactions(true)}
+          onShopClick={() => setPage("shop")}
         />
       )}
 
@@ -379,6 +383,7 @@ export default function App() {
           unreadCount={unreadCount}
           onBucksClick={() => setShowTransactions(true)}
           onUnreadUpdate={(count) => setUnreadCount(count)}
+          onShopClick={() => setPage("shop")}
         />
       )}
 
@@ -400,6 +405,7 @@ export default function App() {
           onBucksClick={() => setShowTransactions(true)}
           unreadCount={unreadCount}
           onModPanelClick={() => setPage("modPanel")}
+          onShopClick={() => setPage("shop")}
         />
       )}
 
@@ -425,6 +431,27 @@ export default function App() {
           }}
           unreadCount={unreadCount}
           onBucksClick={() => setShowTransactions(true)}
+          onShopClick={() => setPage("shop")}
+        />
+      )}
+      {page === "shop" && (
+        <Shop
+          user={session.user}
+          username={username}
+          userBucks={userBucks}
+          onBucksUpdate={setUserBucks}
+          isModerator={isModerator}
+          onBack={() => setPage("feed")}
+          onProfileClick={() => setPage("profile")}
+          onMessagesClick={() => setPage("messages")}
+          onBucksClick={() => setShowTransactions(true)}
+          onShopClick={() => setPage("shop")}
+          unreadCount={unreadCount}
+          onModPanelClick={() => setPage("modPanel")}
+          onViewProfile={(u) => {
+            setViewingUsername(u);
+            setPage("viewProfile");
+          }}
         />
       )}
     </>
