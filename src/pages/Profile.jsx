@@ -43,6 +43,9 @@ export default function Profile({
   user,
   isModerator,
   onBack,
+  handleLogout,
+  userBucks,
+  avatarUrl,
   ...props
 }) {
   const [profile, setProfile] = useState(null);
@@ -227,7 +230,13 @@ export default function Profile({
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
-      <Navbar {...props} username={username} />
+      <Navbar
+        {...props}
+        onLogout={handleLogout}
+        avatarUrl={avatarUrl}
+        username={username}
+        userBucks={userBucks}
+      />
       <div className="max-w-2xl mx-auto p-6">
         {/* Back button */}
         <button

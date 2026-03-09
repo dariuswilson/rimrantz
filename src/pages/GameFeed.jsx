@@ -47,6 +47,7 @@ export default function GameFeed({
   onBucksUpdate,
   onBack,
   onViewProfile,
+  handleLogout,
   ...props
 }) {
   const [game, setGame] = useState(initialGame);
@@ -234,7 +235,13 @@ export default function GameFeed({
         />
       )}
 
-      <Navbar {...props} />
+      <Navbar
+        {...props}
+        onLogout={handleLogout}
+        avatarUrl={avatarUrl}
+        username={username}
+        userBucks={userBucks}
+      />
 
       <div className="max-w-2xl mx-auto p-6">
         <div className="flex items-center gap-4 mb-6">
