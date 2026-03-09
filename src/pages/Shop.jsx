@@ -23,16 +23,9 @@ export default function Shop({
   username,
   userBucks,
   onBucksUpdate,
-  isModerator,
   onBack,
-  onProfileClick,
-  onMessagesClick,
-  onBucksClick,
-  onShopClick,
-  unreadCount,
-  onModPanelClick,
-  onViewProfile,
-  onLogout,
+  handleLogout,
+  ...props
 }) {
   const [purchasing, setPurchasing] = useState(null);
   const [successItem, setSuccessItem] = useState(null);
@@ -97,17 +90,11 @@ export default function Shop({
   return (
     <div className="min-h-screen text-white" style={{ background: "#080810" }}>
       <Navbar
+        {...props}
+        onLogout={handleLogout}
+        // avatarUrl={avatarUrl}
         username={username}
         userBucks={userBucks}
-        onProfileClick={onProfileClick}
-        onLogout={onLogout || (() => supabase.auth.signOut())}
-        onViewProfile={onViewProfile}
-        onMessagesClick={onMessagesClick}
-        onBucksClick={onBucksClick}
-        onShopClick={onShopClick}
-        unreadCount={unreadCount}
-        isModerator={isModerator}
-        onModPanelClick={onModPanelClick}
       />
 
       <div className="max-w-3xl mx-auto px-4 py-8">
