@@ -21,17 +21,9 @@ const CONTENT_ICONS = {
 
 export default function ModeratorPanel({
   user,
-  username,
-  avatarUrl,
-  userBucks,
-  isModerator,
   onBack,
-  onProfileClick,
   onViewProfile,
-  onMessagesClick,
-  onBucksClick,
-  unreadCount,
-  onModPanelClick,
+  ...props
 }) {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -143,19 +135,7 @@ export default function ModeratorPanel({
 
   return (
     <div className="min-h-screen text-white" style={{ background: "#080810" }}>
-      <Navbar
-        username={username}
-        avatarUrl={avatarUrl}
-        userBucks={userBucks}
-        onProfileClick={onProfileClick}
-        onLogout={() => {}}
-        onViewProfile={onViewProfile}
-        onMessagesClick={onMessagesClick}
-        onBucksClick={onBucksClick}
-        unreadCount={unreadCount}
-        isModerator={isModerator}
-        onModPanelClick={onModPanelClick}
-      />
+      <Navbar {...props} />
 
       <div className="max-w-3xl mx-auto p-4 md:p-6">
         {/* Header */}

@@ -43,16 +43,10 @@ export default function ViewProfile({
   username,
   currentUser,
   currentUsername,
-  currentUserBucks,
   isModerator,
   onBack,
-  onViewProfile,
   onDM,
-  onMessagesClick,
-  onProfileClick,
-  onBucksClick,
-  unreadCount,
-  onModPanelClick,
+  ...props
 }) {
   const [profile, setProfile] = useState(null);
   const [takes, setTakes] = useState([]);
@@ -177,21 +171,7 @@ export default function ViewProfile({
         />
       )}
 
-      <Navbar
-        username={currentUsername}
-        avatarUrl={currentAvatarUrl}
-        userBucks={currentUserBucks}
-        onLogout={async () => {
-          await supabase.auth.signOut();
-        }}
-        onViewProfile={(u) => onViewProfile?.(u)}
-        onMessagesClick={onMessagesClick}
-        onProfileClick={onProfileClick}
-        onBucksClick={onBucksClick}
-        unreadCount={unreadCount}
-        isModerator={isModerator}
-        onModPanelClick={onModPanelClick}
-      />
+      <Navbar {...props} avatarUrl={currentAvatarUrl} />
       <div className="max-w-2xl mx-auto p-6">
         <button
           onClick={onBack}

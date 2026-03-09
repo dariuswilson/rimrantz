@@ -42,12 +42,8 @@ export default function Profile({
   username,
   user,
   isModerator,
-  onViewProfile,
   onBack,
-  onMessagesClick,
-  onBucksClick,
-  unreadCount,
-  onModPanelClick,
+  ...props
 }) {
   const [profile, setProfile] = useState(null);
   const [takes, setTakes] = useState([]);
@@ -231,21 +227,7 @@ export default function Profile({
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
-      <Navbar
-        username={username}
-        avatarUrl={profile?.avatar_url}
-        userBucks={profile?.nba_bucks}
-        onProfileClick={onBack}
-        onLogout={async () => {
-          await supabase.auth.signOut();
-        }}
-        onViewProfile={(u) => onViewProfile?.(u)}
-        onMessagesClick={onMessagesClick}
-        onBucksClick={onBucksClick}
-        unreadCount={unreadCount}
-        isModerator={isModerator}
-        onModPanelClick={onModPanelClick}
-      />
+      <Navbar {...props} />
       <div className="max-w-2xl mx-auto p-6">
         {/* Back button */}
         <button

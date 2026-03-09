@@ -17,6 +17,7 @@ import Messages from "./pages/Messages";
 import TransactionsModal from "./pages/TransactionsModal";
 import ModeratorPanel from "./pages/ModeratorPanel";
 import CommunityGuidelines from "./pages/CommunityGuidelines";
+import Shop from "./pages/Shop";
 
 function ViewProfileWrapper(props) {
   const { username } = useParams();
@@ -293,6 +294,7 @@ function AppInner() {
     onBucksUpdate: setUserBucks,
     onUnreadUpdate: (count) => setUnreadCount(count),
     onBucksClick: () => setShowTransactions(true),
+    onShopClick: () => navigate("/shop"),
     onMessagesClick: () => navigate("/messages"),
     onProfileClick: () => navigate("/profile"),
     onModPanelClick: () => navigate("/mod"),
@@ -362,6 +364,10 @@ function AppInner() {
         <Route
           path="/guidelines"
           element={<CommunityGuidelines onBack={() => navigate(-1)} />}
+        />
+        <Route
+          path="/shop"
+          element={<Shop {...sharedProps} onBack={() => navigate("/")} />}
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -11,16 +11,11 @@ const EMOJIS = ["🔥", "💀", "🐐", "😂", "👀"];
 export default function Feed({
   username,
   user,
-  onProfileClick,
   onViewProfile,
   onGameClick,
   userBucks,
   onBucksUpdate,
-  onMessagesClick,
-  onBucksClick,
-  unreadCount,
-  isModerator,
-  onModPanelClick,
+  ...props
 }) {
   const [takes, setTakes] = useState([]);
   const [newTake, setNewTake] = useState("");
@@ -200,19 +195,7 @@ export default function Feed({
       )}
 
       {/* Top navbar */}
-      <Navbar
-        username={username}
-        avatarUrl={avatarUrl}
-        userBucks={userBucks}
-        onProfileClick={onProfileClick}
-        onLogout={handleLogout}
-        onViewProfile={onViewProfile}
-        onMessagesClick={onMessagesClick}
-        onBucksClick={onBucksClick}
-        unreadCount={unreadCount}
-        isModerator={isModerator}
-        onModPanelClick={onModPanelClick}
-      />
+      <Navbar {...props} onLogout={handleLogout} avatarUrl={avatarUrl} />
       <div className="max-w-5xl mx-auto px-6 py-6 flex gap-6">
         <div className="w-72 flex-shrink-0 hidden lg:block">
           <Leaderboard onViewProfile={onViewProfile} />
