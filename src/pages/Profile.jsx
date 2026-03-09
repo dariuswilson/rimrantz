@@ -132,6 +132,17 @@ export default function Profile({
   const handleAvatarUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    // Block GIFs
+    if (file.type === "image/gif") {
+      alert(
+        "GIFs are not allowed as profile pictures. Please use a JPG or PNG.",
+      );
+      e.target.value = ""; // reset the input
+      return;
+    }
+
+    setUploading(true);
     setUploading(true);
 
     const fileExt = file.name.split(".").pop();
@@ -285,7 +296,7 @@ export default function Profile({
                   <span className="text-xs">✎</span>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/png, image/jpeg, image/webp"
                     onChange={handleAvatarUpload}
                     className="hidden"
                   />
