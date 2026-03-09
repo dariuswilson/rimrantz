@@ -87,7 +87,7 @@ export default function Navbar({
         >
           <img
             src="/favicon.png"
-            alt="imRantz"
+            alt="RimRantz"
             className="w-8 h-8 rounded-lg flex-shrink-0"
           />
           <span
@@ -98,7 +98,7 @@ export default function Navbar({
               WebkitTextFillColor: "transparent",
             }}
           >
-            RimRantz
+            imRantz
           </span>
         </div>
 
