@@ -58,10 +58,11 @@ export default function Login({ isBanned = false }) {
       if (error) {
         setError(error.message);
       } else {
-        await supabase.from("profiles").insert({
+        const { error: insertError } = await supabase.from("profiles").insert({
           user_id: authData.user.id,
           username: username.toLowerCase(),
         });
+        console.log("insert error:", insertError);
         setVerified(true);
       }
     } else {
