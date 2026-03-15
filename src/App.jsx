@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -41,7 +41,6 @@ function AppInner() {
   const [showTransactions, setShowTransactions] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isBanned, setIsBanned] = useState(false);
-  const settleIntervalRef = useRef(null);
   const navigate = useNavigate();
   const [avatarUrl, setAvatarUrl] = useState(null);
 
@@ -88,102 +87,6 @@ function AppInner() {
     setUnreadCount(count || 0);
   };
 
-  const settleUserBets = async (userId) => {
-    try {
-      const ABBR_MAP = {
-        SA: "SAS",
-        NO: "NOP",
-        GS: "GSW",
-        WSH: "WAS",
-        NY: "NYK",
-        UTAH: "UTA",
-        PHX: "PHX",
-        BKN: "BKN",
-        BRK: "BKN",
-        CHA: "CHA",
-        CHO: "CHA",
-        DAL: "DAL",
-        DEN: "DEN",
-        DET: "DET",
-        HOU: "HOU",
-        IND: "IND",
-        LAC: "LAC",
-        LAL: "LAL",
-        MEM: "MEM",
-        MIA: "MIA",
-        MIL: "MIL",
-        MIN: "MIN",
-        OKC: "OKC",
-        ORL: "ORL",
-        PHI: "PHI",
-        POR: "POR",
-        SAC: "SAC",
-        TOR: "TOR",
-        ATL: "ATL",
-        BOS: "BOS",
-        CHI: "CHI",
-        CLE: "CLE",
-        NOP: "NOP",
-        NYK: "NYK",
-        SAS: "SAS",
-        UTA: "UTA",
-        WAS: "WAS",
-        GSW: "GSW",
-      };
-      const normalizeTeam = (abbr) => ABBR_MAP[abbr] || abbr;
-
-      const res = await fetch("/api/nba-scores");
-      const data = await res.json();
-      const finishedGames = (data.games || []).filter(
-        (g) => g.status === "closed",
-      );
-      if (finishedGames.length === 0) return;
-
-      const { data: pending } = await supabase
-        .from("predictions")
-        .select("*")
-        .eq("user_id", userId)
-        .eq("status", "pending")
-        .is("settled_at", null);
-
-      if (!pending || pending.length === 0) return;
-
-      let totalWinnings = 0;
-      for (const pred of pending) {
-        const game = finishedGames.find((g) => g.id === pred.game_id);
-        if (!game) continue;
-        const homeScore = game.score[game.home];
-        const awayScore = game.score[game.away];
-        const winner = homeScore > awayScore ? game.home : game.away;
-        const won = normalizeTeam(winner) === normalizeTeam(pred.team_picked);
-        await supabase
-          .from("predictions")
-          .update({
-            status: won ? "won" : "lost",
-            settled_at: new Date().toISOString(),
-          })
-          .eq("id", pred.id);
-        if (won) totalWinnings += pred.payout;
-      }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("nba_bucks")
-        .eq("user_id", userId)
-        .single();
-
-      let newBalance = (profile?.nba_bucks || 0) + totalWinnings;
-      if (newBalance <= 0) newBalance = 10;
-      await supabase
-        .from("profiles")
-        .update({ nba_bucks: newBalance })
-        .eq("user_id", userId);
-      setUserBucks(newBalance);
-    } catch {
-      /* continue */
-    }
-  };
-
   useEffect(() => {
     const timeout = setTimeout(() => setLoading(false), 3000);
 
@@ -220,12 +123,6 @@ function AppInner() {
         setIsModerator(isMod);
 
         await fetchUnreadCount(session.user.id);
-        await settleUserBets(session.user.id);
-
-        settleIntervalRef.current = setInterval(
-          () => settleUserBets(session.user.id),
-          120000,
-        );
 
         // eslint-disable-next-line no-unused-vars
         const msgChannel = supabase
@@ -273,7 +170,6 @@ function AppInner() {
     return () => {
       subscription.unsubscribe();
       clearTimeout(timeout);
-      clearInterval(settleIntervalRef.current);
     };
   }, []);
 

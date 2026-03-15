@@ -33,19 +33,12 @@ export const placeBet = async (
 
   if (betError) throw betError;
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("nba_bucks")
-    .eq("user_id", userId)
-    .single();
-
-  const { error: bucksError } = await supabase
-    .from("profiles")
-    .update({ nba_bucks: (profile?.nba_bucks || 0) - amount })
-    .eq("user_id", userId);
+  const { error: bucksError } = await supabase.rpc("increment_nba_bucks", {
+    user_id: userId,
+    amount: -amount, // negative to deduct
+  });
 
   if (bucksError) throw bucksError;
 };
 
-// Note: bet settlement lives in App.jsx > settleUserBets()
-// That function handles: settling won/lost, balance updates, and the broke-user safety net (floor of 10 bucks)
+// Note: bet settlement now handled by settle_bets.py in the Discord bot (runs every 5 min)
