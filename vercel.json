@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/settle-bets",
-      "schedule": "*/2 * * * *"
+      "schedule": "0 6 * * *"
     }
   ]
 }

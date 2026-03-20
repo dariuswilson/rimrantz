@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabase";
 import { moderateContent } from "../utils/moderate";
 import { calcOdds, placeBet } from "../utils/usePredictions";
@@ -68,6 +68,7 @@ export default function GameFeed({
   const [betTarget, setBetTarget] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [reportModal, setReportModal] = useState(null);
+  const settledGameIdsRef = useRef(new Set());
 
   const homeAbbr = game.home;
   const awayAbbr = game.away;
@@ -85,9 +86,50 @@ export default function GameFeed({
       if (!res.ok) return;
       const data = await res.json();
       const updated = data.games?.find((g) => g.id === initialGame.id);
-      if (updated) setGame(updated);
+      if (updated) {
+        setGame(updated);
+        if (updated.status === "closed") {
+          await settleGameBetsIfNeeded(updated.id);
+        }
+      }
     } catch {
       /* continue */
+    }
+  };
+
+  const settleGameBetsIfNeeded = async (gameId) => {
+    if (!user?.id || !gameId) return;
+    if (settledGameIdsRef.current.has(gameId)) return;
+
+    settledGameIdsRef.current.add(gameId);
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      if (!accessToken) return;
+
+      const res = await fetch("/api/bets/settle", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ gameId }),
+      });
+
+      if (!res.ok) {
+        settledGameIdsRef.current.delete(gameId);
+        return;
+      }
+
+      const payload = await res.json();
+      if (typeof payload?.newBalance === "number" && onBucksUpdate) {
+        onBucksUpdate(payload.newBalance);
+      }
+    } catch {
+      settledGameIdsRef.current.delete(gameId);
     }
   };
 
@@ -134,6 +176,10 @@ export default function GameFeed({
         .eq("user_id", user.id)
         .single();
       setAvatarUrl(profileData?.avatar_url || null);
+
+      if (game.status === "closed") {
+        await settleGameBetsIfNeeded(game.id);
+      }
     };
     load();
     const scoreInterval = setInterval(fetchLiveGame, 20000);
@@ -154,6 +200,8 @@ export default function GameFeed({
       supabase.removeChannel(channel);
       clearInterval(scoreInterval);
     };
+    // This effect intentionally re-runs on game.id only to keep one subscription per game feed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.id]);
 
   const postTake = async () => {

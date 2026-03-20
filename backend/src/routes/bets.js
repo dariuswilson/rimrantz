@@ -3,7 +3,10 @@ const { requireAuth } = require("../middleware/auth");
 const { adminClient } = require("../services/supabase");
 const { badRequest, forbidden, serverError } = require("../lib/errors");
 const { write } = require("../middleware/rateLimiter");
-const { runAtomicSettlement } = require("../services/settlement");
+const {
+  runAtomicSettlement,
+  runAtomicSettlementForGame,
+} = require("../services/settlement");
 const router = Router();
 
 // POST /api/bets
@@ -75,7 +78,10 @@ router.post("/settle", requireAuth, async (req, res) => {
   const userId = req.user.id;
 
   try {
-    const settlement = await runAtomicSettlement();
+    const gameId = req.body?.gameId ? String(req.body.gameId) : null;
+    const settlement = gameId
+      ? await runAtomicSettlementForGame(gameId)
+      : await runAtomicSettlement();
 
     const { data: profile } = await adminClient
       .from("profiles")
@@ -87,6 +93,7 @@ router.post("/settle", requireAuth, async (req, res) => {
       settled: settlement.settled,
       creditedUsers: settlement.credited_users,
       scannedGames: settlement.scanned_games,
+      gameId,
       newBalance: profile?.nba_bucks,
     });
   } catch (err) {

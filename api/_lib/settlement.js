@@ -26,6 +26,12 @@ export async function fetchFinishedGameWinners() {
     .filter((g) => g.game_id && g.winner);
 }
 
+export async function fetchFinishedWinnerForGame(gameId) {
+  const target = String(gameId);
+  const winners = await fetchFinishedGameWinners();
+  return winners.find((g) => g.game_id === target) || null;
+}
+
 export async function runAtomicSettlement() {
   const finishedGames = await fetchFinishedGameWinners();
   if (finishedGames.length === 0) {
@@ -42,5 +48,24 @@ export async function runAtomicSettlement() {
     settled: data?.settled || 0,
     credited_users: data?.credited_users || 0,
     scanned_games: finishedGames.length,
+  };
+}
+
+export async function runAtomicSettlementForGame(gameId) {
+  const game = await fetchFinishedWinnerForGame(gameId);
+  if (!game) {
+    return { settled: 0, credited_users: 0, scanned_games: 0 };
+  }
+
+  const { data, error } = await adminClient.rpc("settle_finished_games_atomic", {
+    p_finished_games: [game],
+  });
+
+  if (error) throw error;
+
+  return {
+    settled: data?.settled || 0,
+    credited_users: data?.credited_users || 0,
+    scanned_games: 1,
   };
 }

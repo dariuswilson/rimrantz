@@ -1,5 +1,8 @@
 import { adminClient, requireAuth } from "../_lib/supabase.js";
-import { runAtomicSettlement } from "../_lib/settlement.js";
+import {
+  runAtomicSettlement,
+  runAtomicSettlementForGame,
+} from "../_lib/settlement.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -10,7 +13,10 @@ export default async function handler(req, res) {
   if (!user) return;
 
   try {
-    const settlement = await runAtomicSettlement();
+    const gameId = req.body?.gameId ? String(req.body.gameId) : null;
+    const settlement = gameId
+      ? await runAtomicSettlementForGame(gameId)
+      : await runAtomicSettlement();
 
     const { data: profile } = await adminClient
       .from("profiles")
@@ -22,6 +28,7 @@ export default async function handler(req, res) {
       settled: settlement.settled,
       creditedUsers: settlement.credited_users,
       scannedGames: settlement.scanned_games,
+      gameId,
       newBalance: profile?.nba_bucks,
     });
   } catch (err) {
