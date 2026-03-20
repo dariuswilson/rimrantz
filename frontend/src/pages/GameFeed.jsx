@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabase";
 import { moderateContent } from "../utils/moderate";
-import { placeBet } from "../utils/usePredictions";
+import { calcOdds, placeBet } from "../utils/usePredictions";
 import BetModal from "./BetModal";
 import Navbar from "../components/Navbar";
 import ReportModal from "./ReportModal";
@@ -210,14 +210,22 @@ export default function GameFeed({
     await fetchComments();
   };
 
-  const handleBetConfirm = async (amount, odds, payout) => {
+  const handleBetConfirm = async (amount, odds, payout, idempotencyKey) => {
     if (!betTarget || !user) return;
     try {
-      await placeBet(user.id, game, betTarget.team, amount, odds, payout);
+      await placeBet(
+        user.id,
+        game,
+        betTarget.team,
+        amount,
+        odds,
+        payout,
+        idempotencyKey,
+      );
       if (onBucksUpdate) onBucksUpdate(userBucks - amount);
       setBetTarget(null);
-    } catch {
-      setError("Failed to place bet. Try again.");
+    } catch (err) {
+      setError(err?.message || "Failed to place bet. Try again.");
     }
   };
 
@@ -715,13 +723,7 @@ export default function GameFeed({
         <BetModal
           game={game}
           team={betTarget.team}
-          odds={
-            betTarget.prob
-              ? betTarget.prob < 50
-                ? Math.round(((100 - betTarget.prob) / betTarget.prob) * 100)
-                : -Math.round((betTarget.prob / (100 - betTarget.prob)) * 100)
-              : 100
-          }
+          odds={calcOdds(betTarget.prob)}
           userBucks={userBucks}
           onConfirm={handleBetConfirm}
           onClose={() => setBetTarget(null)}

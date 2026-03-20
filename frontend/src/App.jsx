@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 import Login from "./pages/Login";
 import Feed from "./pages/Feed";
@@ -12,6 +12,10 @@ import ModeratorPanel from "./pages/ModeratorPanel";
 import Shop from "./pages/Shop";
 
 export default function App() {
+  const requireBackendBets =
+    String(import.meta.env.VITE_REQUIRE_BACKEND_BETS || "false").toLowerCase() ===
+    "true";
+
   const [session, setSession] = useState(null);
   const [username, setUsername] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -24,7 +28,6 @@ export default function App() {
   const [showTransactions, setShowTransactions] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isBanned, setIsBanned] = useState(false);
-  const settleIntervalRef = useRef(null);
 
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
   const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -69,7 +72,7 @@ export default function App() {
     setUnreadCount(count || 0);
   };
 
-  const settleUserBets = async (userId) => {
+  const settleUserBetsLegacy = async (userId) => {
     try {
       const ABBR_MAP = {
         // Short forms → Standard
@@ -169,6 +172,41 @@ export default function App() {
     }
   };
 
+  const settleUserBets = async (userId) => {
+    try {
+      const { data: authData } = await supabase.auth.getSession();
+      const accessToken = authData?.session?.access_token;
+
+      if (!accessToken) {
+        if (requireBackendBets) return;
+        await settleUserBetsLegacy(userId);
+        return;
+      }
+
+      const res = await fetch("/api/bets/settle", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!res.ok) {
+        if (requireBackendBets) return;
+        await settleUserBetsLegacy(userId);
+        return;
+      }
+
+      const payload = await res.json();
+      if (typeof payload?.newBalance === "number") {
+        setUserBucks(payload.newBalance);
+      }
+    } catch {
+      if (requireBackendBets) return;
+      await settleUserBetsLegacy(userId);
+    }
+  };
+
   useEffect(() => {
     const timeout = setTimeout(() => setLoading(false), 3000);
 
@@ -206,12 +244,6 @@ export default function App() {
 
         await fetchUnreadCount(session.user.id);
         await settleUserBets(session.user.id);
-
-        // Re-check every 2 minutes while app is open
-        settleIntervalRef.current = setInterval(
-          () => settleUserBets(session.user.id),
-          120000,
-        );
 
         // eslint-disable-next-line no-unused-vars
         const msgChannel = supabase
@@ -259,7 +291,6 @@ export default function App() {
     return () => {
       subscription.unsubscribe();
       clearTimeout(timeout);
-      clearInterval(settleIntervalRef.current);
     };
   }, []);
 
