@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabase";
+import iconLeaderboard from "../../assets/images/icons/icon_leaderboard.png";
+import iconMoney from "../../assets/images/icons/icon_money.png";
 
 const RANK_STYLES = [
   {
@@ -22,10 +24,10 @@ const RANK_STYLES = [
 ];
 
 const TABS = [
-  { key: "bucks", label: "Bucks", icon: "/assets/images/icons/icon_money.png" },
-  { key: "wins", label: "Wins", icon: "/assets/images/icons/icon_wins.png" },
-  { key: "winpct", label: "Win%", icon: "/assets/images/icons/icon_winpct.png" },
-  { key: "today", label: "Today", icon: "/assets/images/icons/icon_today.png" },
+  { key: "bucks", label: "Bucks", icon: iconMoney },
+  { key: "wins", label: "Wins", icon: iconLeaderboard },
+  { key: "winpct", label: "Win%", icon: iconLeaderboard },
+  { key: "today", label: "Today", icon: iconLeaderboard },
 ];
 
 export default function Leaderboard({ onViewProfile }) {
@@ -209,7 +211,7 @@ export default function Leaderboard({ onViewProfile }) {
     >
         <div className="flex items-center gap-2 mb-4">
           <img
-            src="/assets/images/icons/icon_leaderboard.png"
+            src={iconLeaderboard}
             alt="leaderboard"
             className="w-7 h-7"
           />
@@ -252,7 +254,7 @@ export default function Leaderboard({ onViewProfile }) {
               alt={tab.label}
               className="w-3.5 h-3.5 object-contain"
               onError={(e) => {
-                e.currentTarget.src = "/assets/images/icons/icon_leaderboard.png";
+                e.currentTarget.src = iconLeaderboard;
               }}
             />
             <span>{tab.label}</span>
