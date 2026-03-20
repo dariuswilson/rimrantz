@@ -82,7 +82,7 @@ export default function Navbar({
         {/* Logo */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <img
-            src="/favicon.png"
+            src="assets/images/icons/favicon.png"
             alt="RimRantz"
             className="w-8 h-8 rounded-lg flex-shrink-0"
           />
