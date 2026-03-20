@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export default function BetModal({
   game,
@@ -9,19 +9,28 @@ export default function BetModal({
   onClose,
 }) {
   const [amount, setAmount] = useState("");
-  const [isLoading, setIsLoading] = useState(false); // ← was hardcoded false before
+  const [isLoading, setIsLoading] = useState(false); 
+
+  const idempotencyKeyRef = useRef(
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+  );
 
   const numAmount = parseInt(amount) || 0;
 
   const calcPayout = (amt, odds) => {
     if (!amt || amt <= 0) return 0;
+    if (!Number.isFinite(odds) || odds === 0) return 0;
     if (odds > 0) return amt + Math.floor((amt * odds) / 100);
     else return amt + Math.floor((amt * 100) / Math.abs(odds));
   };
 
   const payout = calcPayout(numAmount, odds);
   const profit = payout - numAmount;
-  const isValid = numAmount >= 10 && numAmount <= userBucks;
+  const oddsValid = Number.isFinite(odds) && odds !== 0;
+  const payoutValid = Number.isFinite(payout) && payout > 0;
+  const isValid = numAmount >= 10 && numAmount <= userBucks && oddsValid && payoutValid;
 
   const homeAbbr = game.home;
   const awayAbbr = game.away;
@@ -31,7 +40,7 @@ export default function BetModal({
     if (isLoading || !isValid) return; // ← double-click guard
     setIsLoading(true);
     try {
-      await onConfirm(numAmount, odds, payout);
+      await onConfirm(numAmount, odds, payout, idempotencyKeyRef.current);
     } finally {
       setIsLoading(false);
     }
@@ -126,7 +135,7 @@ export default function BetModal({
               opacity: isLoading ? 0.5 : 1,
             }}
           />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 text-xs">
+          <span className="absolute right-10 top-1/2 -translate-y-1/2 text-zinc-500 text-xs pointer-events-none">
             min 10
           </span>
         </div>
@@ -211,6 +220,12 @@ export default function BetModal({
 
         {numAmount > userBucks && (
           <p className="text-red-400 text-xs mb-3">Not enough NBA Bucks!</p>
+        )}
+
+        {!oddsValid && (
+          <p className="text-red-400 text-xs mb-3">
+            Odds are currently unavailable for this game.
+          </p>
         )}
 
         <button

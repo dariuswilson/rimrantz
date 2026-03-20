@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
+import favicon from "../../assets/images/icons/favicon.png";
 
 export default function Navbar({
   username,
@@ -8,6 +8,7 @@ export default function Navbar({
   userBucks,
   onProfileClick,
   onLogout,
+  onViewProfile,
   onMessagesClick,
   onBucksClick,
   onShopClick,
@@ -24,7 +25,6 @@ export default function Navbar({
   const searchRef = useRef(null);
   const profileRef = useRef(null);
   const bucksRef = useRef(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -68,7 +68,7 @@ export default function Navbar({
   const handleSelect = (u) => {
     setShowResults(false);
     setSearch("");
-    navigate(`/user/${u.username}`);
+    if (onViewProfile) onViewProfile(u.username);
   };
 
   return (
@@ -81,12 +81,9 @@ export default function Navbar({
     >
       <div className="w-full px-3 py-3 flex items-center gap-2">
         {/* Logo */}
-        <div
-          className="flex items-center gap-2 flex-shrink-0 cursor-pointer"
-          onClick={() => navigate("/")}
-        >
+        <div className="flex items-center gap-2 flex-shrink-0">
           <img
-            src="/favicon.png"
+            src={favicon}
             alt="RimRantz"
             className="w-8 h-8 rounded-lg flex-shrink-0"
           />
@@ -98,7 +95,7 @@ export default function Navbar({
               WebkitTextFillColor: "transparent",
             }}
           >
-            imRantz
+            RimRantz
           </span>
         </div>
 
@@ -203,6 +200,7 @@ export default function Navbar({
               </span>
             </div>
 
+            {/* Bucks dropdown menu */}
             {showBucksMenu && (
               <div
                 className="absolute top-full right-0 mt-2 w-48 rounded-2xl overflow-hidden z-50"
@@ -213,6 +211,7 @@ export default function Navbar({
                   boxShadow: "0 20px 40px rgba(0,0,0,0.6)",
                 }}
               >
+                {/* Balance header */}
                 <div
                   className="px-4 py-3"
                   style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
@@ -223,6 +222,7 @@ export default function Navbar({
                   </p>
                 </div>
 
+                {/* Transactions */}
                 <button
                   onClick={() => {
                     setShowBucksMenu(false);
@@ -235,6 +235,7 @@ export default function Navbar({
                   <span>Transactions</span>
                 </button>
 
+                {/* Shop */}
                 <button
                   onClick={() => {
                     setShowBucksMenu(false);
@@ -304,6 +305,7 @@ export default function Navbar({
               <span className="hidden md:inline text-xs">@{username}</span>
             </button>
 
+            {/* Dropdown menu */}
             {showProfileMenu && (
               <div
                 className="absolute top-full right-0 mt-2 w-44 rounded-2xl overflow-hidden z-50"

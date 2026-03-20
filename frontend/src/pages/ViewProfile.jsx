@@ -43,10 +43,17 @@ export default function ViewProfile({
   username,
   currentUser,
   currentUsername,
+  currentUserBucks,
   isModerator,
   onBack,
+  onViewProfile,
   onDM,
-  ...props
+  onMessagesClick,
+  onProfileClick,
+  onBucksClick,
+  unreadCount,
+  onModPanelClick,
+  onShopClick,
 }) {
   const [profile, setProfile] = useState(null);
   const [takes, setTakes] = useState([]);
@@ -172,10 +179,20 @@ export default function ViewProfile({
       )}
 
       <Navbar
-        {...props}
-        avatarUrl={currentAvatarUrl}
         username={currentUsername}
+        avatarUrl={currentAvatarUrl}
+        userBucks={currentUserBucks}
+        onLogout={async () => {
+          await supabase.auth.signOut();
+        }}
+        onViewProfile={(u) => onViewProfile?.(u)}
+        onMessagesClick={onMessagesClick}
+        onProfileClick={onProfileClick}
+        onBucksClick={onBucksClick}
+        unreadCount={unreadCount}
         isModerator={isModerator}
+        onModPanelClick={onModPanelClick}
+        onShopClick={onShopClick}
       />
       <div className="max-w-2xl mx-auto p-6">
         <button
@@ -427,20 +444,12 @@ export default function ViewProfile({
                     background: "linear-gradient(135deg, #f59e0b, #f97316)",
                   }}
                 >
-                  <div
-                    title={
-                      badge.badge_key === "first_30"
-                        ? "One of the first 30 members to join RimRantz!"
-                        : ""
-                    }
-                  >
-                    <span className="text-sm">⭐</span>
-                    <span className="text-black font-bold text-xs">
-                      {badge.badge_key === "first_30"
-                        ? "Founding Member"
-                        : badge.badge_key}
-                    </span>
-                  </div>
+                  <span className="text-sm">🏆</span>
+                  <span className="text-black font-bold text-xs">
+                    {badge.badge_key === "first_100"
+                      ? "First 100"
+                      : badge.badge_key}
+                  </span>
                 </div>
               ))}
             </div>

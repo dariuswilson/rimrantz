@@ -1,0 +1,16 @@
+// NBA team abbreviation normalization
+// Mirrors the ABBR_MAP in src/App.jsx — used for bet settlement
+const ABBR_MAP = {
+  SA: "SAS", NO: "NOP", GS: "GSW", WSH: "WAS", NY: "NYK",
+  UTAH: "UTA", PHX: "PHX", BKN: "BKN", BRK: "BKN", CHA: "CHA",
+  CHO: "CHA", DAL: "DAL", DEN: "DEN", DET: "DET", HOU: "HOU",
+  IND: "IND", LAC: "LAC", LAL: "LAL", MEM: "MEM", MIA: "MIA",
+  MIL: "MIL", MIN: "MIN", OKC: "OKC", ORL: "ORL", PHI: "PHI",
+  POR: "POR", SAC: "SAC", TOR: "TOR", ATL: "ATL", BOS: "BOS",
+  CHI: "CHI", CLE: "CLE", NOP: "NOP", NYK: "NYK", SAS: "SAS",
+  UTA: "UTA", WAS: "WAS", GSW: "GSW",
+};
+
+const normalizeTeam = (abbr) => ABBR_MAP[abbr] || abbr;
+
+module.exports = { ABBR_MAP, normalizeTeam };

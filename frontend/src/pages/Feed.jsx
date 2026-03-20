@@ -11,12 +11,17 @@ const EMOJIS = ["🔥", "💀", "🐐", "😂", "👀"];
 export default function Feed({
   username,
   user,
+  onProfileClick,
   onViewProfile,
   onGameClick,
   userBucks,
   onBucksUpdate,
-  avatarUrl,
-  ...props
+  onMessagesClick,
+  onBucksClick,
+  unreadCount,
+  isModerator,
+  onModPanelClick,
+  onShopClick,
 }) {
   const [takes, setTakes] = useState([]);
   const [newTake, setNewTake] = useState("");
@@ -28,6 +33,7 @@ export default function Feed({
   const [error, setError] = useState("");
   const [moderatorIds, setModeratorIds] = useState(new Set());
   const [visibleTakes, setVisibleTakes] = useState(10);
+  const [avatarUrl, setAvatarUrl] = useState(null);
   const [reportModal, setReportModal] = useState(null);
 
   const fetchModerators = async () => {
@@ -74,6 +80,13 @@ export default function Feed({
       await fetchReactions();
       await fetchComments();
       await fetchModerators();
+
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("avatar_url")
+        .eq("user_id", user.id)
+        .single();
+      setAvatarUrl(profileData?.avatar_url || null);
     };
     loadData();
 
@@ -189,11 +202,18 @@ export default function Feed({
 
       {/* Top navbar */}
       <Navbar
-        {...props}
-        onLogout={handleLogout}
-        avatarUrl={avatarUrl}
         username={username}
+        avatarUrl={avatarUrl}
         userBucks={userBucks}
+        onProfileClick={onProfileClick}
+        onLogout={handleLogout}
+        onViewProfile={onViewProfile}
+        onMessagesClick={onMessagesClick}
+        onBucksClick={onBucksClick}
+        unreadCount={unreadCount}
+        isModerator={isModerator}
+        onModPanelClick={onModPanelClick}
+        onShopClick={onShopClick}
       />
       <div className="max-w-5xl mx-auto px-6 py-6 flex gap-6">
         <div className="w-72 flex-shrink-0 hidden lg:block">

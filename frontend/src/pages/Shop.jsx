@@ -23,15 +23,21 @@ export default function Shop({
   username,
   userBucks,
   onBucksUpdate,
+  isModerator,
   onBack,
-  handleLogout,
-  ...props
+  onProfileClick,
+  onMessagesClick,
+  onBucksClick,
+  onShopClick,
+  unreadCount,
+  onModPanelClick,
+  onViewProfile,
+  onLogout,
 }) {
   const [purchasing, setPurchasing] = useState(null);
   const [successItem, setSuccessItem] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [ownedItems, setOwnedItems] = useState([]);
-  const [discordVerified, setDiscordVerified] = useState(false);
 
   useEffect(() => {
     const fetchOwned = async () => {
@@ -41,18 +47,7 @@ export default function Shop({
         .eq("user_id", user.id);
       if (data) setOwnedItems(data.map((p) => p.item_id));
     };
-
-    const fetchProfile = async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("discord_verified")
-        .eq("user_id", user.id)
-        .single();
-      setDiscordVerified(data?.discord_verified || false);
-    };
-
     fetchOwned();
-    fetchProfile();
   }, [user.id]);
 
   const handlePurchase = async (item) => {
@@ -102,10 +97,17 @@ export default function Shop({
   return (
     <div className="min-h-screen text-white" style={{ background: "#080810" }}>
       <Navbar
-        {...props}
-        onLogout={handleLogout}
         username={username}
         userBucks={userBucks}
+        onProfileClick={onProfileClick}
+        onLogout={onLogout || (() => supabase.auth.signOut())}
+        onViewProfile={onViewProfile}
+        onMessagesClick={onMessagesClick}
+        onBucksClick={onBucksClick}
+        onShopClick={onShopClick}
+        unreadCount={unreadCount}
+        isModerator={isModerator}
+        onModPanelClick={onModPanelClick}
       />
 
       <div className="max-w-3xl mx-auto px-4 py-8">
@@ -228,49 +230,19 @@ export default function Shop({
             These perks apply to your account in the NBA Zone Discord server.
           </p>
 
-          {discordVerified ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {DISCORD_SHOP_ITEMS.map((item) => (
-                <ShopCard
-                  key={item.id}
-                  item={item}
-                  userBucks={userBucks}
-                  purchasing={purchasing}
-                  owned={ownedItems.includes(item.id)}
-                  onPurchase={handlePurchase}
-                  discord
-                />
-              ))}
-            </div>
-          ) : (
-            <div
-              className="rounded-2xl p-10 text-center"
-              style={{
-                background: "linear-gradient(135deg, #0f0f1a 0%, #151525 100%)",
-                border: "1px solid rgba(88,101,242,0.2)",
-              }}
-            >
-              <p className="text-4xl mb-3">🔒</p>
-              <p className="text-white font-semibold mb-2">
-                Discord Verification Required
-              </p>
-              <p className="text-zinc-400 text-sm mb-5">
-                Verify your Discord account to unlock exclusive shop items.
-              </p>
-              <a
-                href="https://discord.gg/nbachat"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-block px-5 py-2.5 rounded-xl text-sm font-semibold transition"
-                style={{
-                  background: "linear-gradient(135deg, #5865F2, #4752C4)",
-                  color: "white",
-                }}
-              >
-                🎮 Verify on Discord
-              </a>
-            </div>
-          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {DISCORD_SHOP_ITEMS.map((item) => (
+              <ShopCard
+                key={item.id}
+                item={item}
+                userBucks={userBucks}
+                purchasing={purchasing}
+                owned={ownedItems.includes(item.id)}
+                onPurchase={handlePurchase}
+                discord
+              />
+            ))}
+          </div>
         </section>
       </div>
     </div>

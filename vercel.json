@@ -1,3 +1,11 @@
 {
-  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/" }]
+  "installCommand": "npm --prefix frontend install",
+  "buildCommand": "npm --prefix frontend run build",
+  "outputDirectory": "frontend/dist",
+  "crons": [
+    {
+      "path": "/api/cron/settle-bets",
+      "schedule": "0 6 * * *"
+    }
+  ]
 }

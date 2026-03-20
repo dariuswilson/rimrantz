@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabase";
 import { moderateContent } from "../utils/moderate";
-import { placeBet } from "../utils/usePredictions";
+import { calcOdds, placeBet } from "../utils/usePredictions";
 import BetModal from "./BetModal";
 import Navbar from "../components/Navbar";
 import ReportModal from "./ReportModal";
@@ -47,8 +47,14 @@ export default function GameFeed({
   onBucksUpdate,
   onBack,
   onViewProfile,
-  handleLogout,
-  ...props
+  onProfileClick,
+  onLogout,
+  onMessagesClick,
+  unreadCount,
+  onBucksClick,
+  onModPanelClick,
+  isModerator,
+  onShopClick,
 }) {
   const [game, setGame] = useState(initialGame);
   const [posts, setPosts] = useState([]);
@@ -62,6 +68,7 @@ export default function GameFeed({
   const [betTarget, setBetTarget] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [reportModal, setReportModal] = useState(null);
+  const settledGameIdsRef = useRef(new Set());
 
   const homeAbbr = game.home;
   const awayAbbr = game.away;
@@ -79,9 +86,50 @@ export default function GameFeed({
       if (!res.ok) return;
       const data = await res.json();
       const updated = data.games?.find((g) => g.id === initialGame.id);
-      if (updated) setGame(updated);
+      if (updated) {
+        setGame(updated);
+        if (updated.status === "closed") {
+          await settleGameBetsIfNeeded(updated.id);
+        }
+      }
     } catch {
       /* continue */
+    }
+  };
+
+  const settleGameBetsIfNeeded = async (gameId) => {
+    if (!user?.id || !gameId) return;
+    if (settledGameIdsRef.current.has(gameId)) return;
+
+    settledGameIdsRef.current.add(gameId);
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      if (!accessToken) return;
+
+      const res = await fetch("/api/bets/settle", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ gameId }),
+      });
+
+      if (!res.ok) {
+        settledGameIdsRef.current.delete(gameId);
+        return;
+      }
+
+      const payload = await res.json();
+      if (typeof payload?.newBalance === "number" && onBucksUpdate) {
+        onBucksUpdate(payload.newBalance);
+      }
+    } catch {
+      settledGameIdsRef.current.delete(gameId);
     }
   };
 
@@ -128,6 +176,10 @@ export default function GameFeed({
         .eq("user_id", user.id)
         .single();
       setAvatarUrl(profileData?.avatar_url || null);
+
+      if (game.status === "closed") {
+        await settleGameBetsIfNeeded(game.id);
+      }
     };
     load();
     const scoreInterval = setInterval(fetchLiveGame, 20000);
@@ -148,6 +200,8 @@ export default function GameFeed({
       supabase.removeChannel(channel);
       clearInterval(scoreInterval);
     };
+    // This effect intentionally re-runs on game.id only to keep one subscription per game feed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.id]);
 
   const postTake = async () => {
@@ -204,14 +258,22 @@ export default function GameFeed({
     await fetchComments();
   };
 
-  const handleBetConfirm = async (amount, odds, payout) => {
+  const handleBetConfirm = async (amount, odds, payout, idempotencyKey) => {
     if (!betTarget || !user) return;
     try {
-      await placeBet(user.id, game, betTarget.team, amount, odds, payout);
+      await placeBet(
+        user.id,
+        game,
+        betTarget.team,
+        amount,
+        odds,
+        payout,
+        idempotencyKey,
+      );
       if (onBucksUpdate) onBucksUpdate(userBucks - amount);
       setBetTarget(null);
-    } catch {
-      setError("Failed to place bet. Try again.");
+    } catch (err) {
+      setError(err?.message || "Failed to place bet. Try again.");
     }
   };
 
@@ -236,11 +298,18 @@ export default function GameFeed({
       )}
 
       <Navbar
-        {...props}
-        onLogout={handleLogout}
-        avatarUrl={avatarUrl}
         username={username}
+        avatarUrl={avatarUrl}
         userBucks={userBucks}
+        onProfileClick={onProfileClick}
+        onLogout={onLogout}
+        onViewProfile={onViewProfile}
+        onMessagesClick={onMessagesClick}
+        unreadCount={unreadCount}
+        onBucksClick={onBucksClick}
+        onModPanelClick={onModPanelClick}
+        isModerator={isModerator}
+        onShopClick={onShopClick}
       />
 
       <div className="max-w-2xl mx-auto p-6">
@@ -702,13 +771,7 @@ export default function GameFeed({
         <BetModal
           game={game}
           team={betTarget.team}
-          odds={
-            betTarget.prob
-              ? betTarget.prob < 50
-                ? Math.round(((100 - betTarget.prob) / betTarget.prob) * 100)
-                : -Math.round((betTarget.prob / (100 - betTarget.prob)) * 100)
-              : 100
-          }
+          odds={calcOdds(betTarget.prob)}
           userBucks={userBucks}
           onConfirm={handleBetConfirm}
           onClose={() => setBetTarget(null)}

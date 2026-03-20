@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabase";
+import iconLeaderboard from "../../assets/images/icons/icon_leaderboard.png";
+import iconMoney from "../../assets/images/icons/icon_money.png";
 
 const RANK_STYLES = [
   {
@@ -22,10 +24,10 @@ const RANK_STYLES = [
 ];
 
 const TABS = [
-  { key: "bucks", label: "💰 Bucks" },
-  { key: "wins", label: "🏆 Wins" },
-  { key: "winpct", label: "🎯 Win%" },
-  { key: "today", label: "📈 Today" },
+  { key: "bucks", label: "Bucks", icon: iconMoney },
+  { key: "wins", label: "Wins", icon: iconLeaderboard },
+  { key: "winpct", label: "Win%", icon: iconLeaderboard },
+  { key: "today", label: "Today", icon: iconLeaderboard },
 ];
 
 export default function Leaderboard({ onViewProfile }) {
@@ -54,14 +56,14 @@ export default function Leaderboard({ onViewProfile }) {
       } else if (activeTab === "wins") {
         const { data } = await supabase
           .from("predictions")
-          .select("user_id, username")
+          .select("user_id")
           .eq("status", "won")
           .not("settled_at", "is", null);
 
         const counts = {};
         data?.forEach((p) => {
-          if (!counts[p.user_id])
-            counts[p.user_id] = { username: p.username, wins: 0 };
+          if (!p.user_id) return;
+          if (!counts[p.user_id]) counts[p.user_id] = { user_id: p.user_id, wins: 0 };
           counts[p.user_id].wins++;
         });
 
@@ -69,8 +71,8 @@ export default function Leaderboard({ onViewProfile }) {
           .sort((a, b) => b.wins - a.wins)
           .slice(0, 5);
 
-        const usernames = sorted.map((u) => u.username);
-        if (usernames.length === 0) {
+        const userIds = sorted.map((u) => u.user_id);
+        if (userIds.length === 0) {
           setLeaders([]);
           setLoading(false);
           return;
@@ -78,16 +80,20 @@ export default function Leaderboard({ onViewProfile }) {
 
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("username, avatar_url")
-          .in("username", usernames);
+          .select("user_id, username, avatar_url")
+          .in("user_id", userIds);
 
-        const avatarMap = {};
-        profiles?.forEach((p) => (avatarMap[p.username] = p.avatar_url));
+        const profileMap = {};
+        profiles?.forEach((p) => {
+          if (!p.user_id) return;
+          profileMap[p.user_id] = p;
+        });
 
         setLeaders(
           sorted.map((u) => ({
-            username: u.username,
-            avatar_url: avatarMap[u.username] || null,
+            user_id: u.user_id,
+            username: profileMap[u.user_id]?.username || "unknown",
+            avatar_url: profileMap[u.user_id]?.avatar_url || null,
             value: `${u.wins} wins`,
             subvalue: null,
           })),
@@ -95,14 +101,14 @@ export default function Leaderboard({ onViewProfile }) {
       } else if (activeTab === "winpct") {
         const { data } = await supabase
           .from("predictions")
-          .select("user_id, username, status")
+          .select("user_id, status")
           .in("status", ["won", "lost"])
           .not("settled_at", "is", null);
 
         const stats = {};
         data?.forEach((p) => {
-          if (!stats[p.user_id])
-            stats[p.user_id] = { username: p.username, wins: 0, total: 0 };
+          if (!p.user_id) return;
+          if (!stats[p.user_id]) stats[p.user_id] = { user_id: p.user_id, wins: 0, total: 0 };
           stats[p.user_id].total++;
           if (p.status === "won") stats[p.user_id].wins++;
         });
@@ -119,19 +125,23 @@ export default function Leaderboard({ onViewProfile }) {
           return;
         }
 
-        const usernames = sorted.map((u) => u.username);
+        const userIds = sorted.map((u) => u.user_id);
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("username, avatar_url")
-          .in("username", usernames);
+          .select("user_id, username, avatar_url")
+          .in("user_id", userIds);
 
-        const avatarMap = {};
-        profiles?.forEach((p) => (avatarMap[p.username] = p.avatar_url));
+        const profileMap = {};
+        profiles?.forEach((p) => {
+          if (!p.user_id) return;
+          profileMap[p.user_id] = p;
+        });
 
         setLeaders(
           sorted.map((u) => ({
-            username: u.username,
-            avatar_url: avatarMap[u.username] || null,
+            user_id: u.user_id,
+            username: profileMap[u.user_id]?.username || "unknown",
+            avatar_url: profileMap[u.user_id]?.avatar_url || null,
             value: `${u.pct}% win rate`,
             subvalue: `${u.wins}/${u.total} bets`,
           })),
@@ -199,25 +209,23 @@ export default function Leaderboard({ onViewProfile }) {
         top: "80px",
       }}
     >
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-4">
-        <div
-          className="w-7 h-7 rounded-lg flex items-center justify-center text-sm"
-          style={{ background: "linear-gradient(135deg, #f97316, #ef4444)" }}
-        >
-          🏆
+        <div className="flex items-center gap-2 mb-4">
+          <img
+            src={iconLeaderboard}
+            alt="leaderboard"
+            className="w-7 h-7"
+          />
+          <div>
+            <p className="text-white text-sm font-bold tracking-tight">
+          Leaderboard
+            </p>
+            <p className="text-zinc-600 text-xs">Top players</p>
+          </div>
         </div>
-        <div>
-          <p className="text-white text-sm font-bold tracking-tight">
-            Leaderboard
-          </p>
-          <p className="text-zinc-600 text-xs">Top players</p>
-        </div>
-      </div>
 
-      {/* Tabs */}
+        {/* Tabs */}
       <div
-        className="leaderboard-tabs flex gap-1 mb-4 pb-1"
+        className="leaderboard-tabs flex gap-1 mb-4 pb-3"
         style={{
           overflowX: "auto",
           scrollbarWidth: "thin",
@@ -228,20 +236,28 @@ export default function Leaderboard({ onViewProfile }) {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer"
+            className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5"
             style={{
               background:
                 activeTab === tab.key
-                  ? "linear-gradient(135deg, #f97316, #ef4444)"
+                  ? "rgba(255,255,255,0.14)"
                   : "rgba(255,255,255,0.06)",
               color: activeTab === tab.key ? "white" : "#71717a",
               border:
                 activeTab === tab.key
-                  ? "1px solid transparent"
+                  ? "1px solid rgba(255,255,255,0.2)"
                   : "1px solid rgba(255,255,255,0.08)",
             }}
           >
-            {tab.label}
+            <img
+              src={tab.icon}
+              alt={tab.label}
+              className="w-3.5 h-3.5 object-contain"
+              onError={(e) => {
+                e.currentTarget.src = iconLeaderboard;
+              }}
+            />
+            <span>{tab.label}</span>
           </button>
         ))}
       </div>
@@ -272,8 +288,12 @@ export default function Leaderboard({ onViewProfile }) {
 
             return (
               <div
-                key={user.username}
-                onClick={() => onViewProfile?.(user.username)}
+                key={user.user_id || `${user.username}-${i}`}
+                onClick={() => {
+                  if (user.username && user.username !== "unknown") {
+                    onViewProfile?.(user.username);
+                  }
+                }}
                 className="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition group"
                 style={{
                   background: isTop3

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import BetModal from "../pages/BetModal";
-import { placeBet } from "../utils/usePredictions";
+import { calcOdds, placeBet } from "../utils/usePredictions";
 
 export default function GamesBar({
   onGameClick,
@@ -35,7 +35,7 @@ export default function GamesBar({
     return (order[a.status] ?? 1) - (order[b.status] ?? 1);
   });
 
-  const handleBetConfirm = async (amount, odds, payout) => {
+  const handleBetConfirm = async (amount, odds, payout, idempotencyKey) => {
     if (!betTarget || !user) return;
     try {
       await placeBet(
@@ -45,11 +45,12 @@ export default function GamesBar({
         amount,
         odds,
         payout,
+        idempotencyKey,
       );
       if (onBucksUpdate) onBucksUpdate(userBucks - amount);
       setBetTarget(null);
-    } catch {
-      alert("Failed to place bet. Try again.");
+    } catch (err) {
+      alert(err?.message || "Failed to place bet. Try again.");
     }
   };
 
@@ -117,13 +118,7 @@ export default function GamesBar({
         <BetModal
           game={betTarget.game}
           team={betTarget.team}
-          odds={
-            betTarget.prob
-              ? betTarget.prob < 50
-                ? Math.round(((100 - betTarget.prob) / betTarget.prob) * 100)
-                : -Math.round((betTarget.prob / (100 - betTarget.prob)) * 100)
-              : 100
-          }
+          odds={calcOdds(betTarget.prob)}
           userBucks={userBucks}
           onConfirm={handleBetConfirm}
           onClose={() => setBetTarget(null)}
