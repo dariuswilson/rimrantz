@@ -12,7 +12,7 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 //   Prefer: "return=minimal",
 // };
 
-export default function UsernameSetup({ user, onComplete }) {
+export default function UsernameSetup({ user }) {
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -71,24 +71,6 @@ export default function UsernameSetup({ user, onComplete }) {
         setLoading(false);
         return;
       }
-
-      // Award first 100 badge
-      const countRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?select=count`,
-        { headers: { ...authHeaders, Prefer: "count=exact" } },
-      );
-      const countData = await countRes.json();
-      const count = countData?.[0]?.count || 0;
-
-      if (count <= 100) {
-        await fetch(`${SUPABASE_URL}/rest/v1/user_badges`, {
-          method: "POST",
-          headers: authHeaders,
-          body: JSON.stringify({ user_id: user.id, badge_key: "first_100" }),
-        });
-      }
-
-      onComplete(username);
     } catch {
       setError("Something went wrong, please try again");
     }

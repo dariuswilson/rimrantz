@@ -690,7 +690,18 @@ export default function Messages({
         { event: "INSERT", schema: "public", table: "messages" },
         (payload) => {
           fetchConversations();
-          if (payload.new.group_id) fetchGroupMessages(payload.new.group_id);
+          if (payload.new.group_id) {
+            fetchGroupMessages(payload.new.group_id);
+          } else if (
+            activeConvo?.user_id === payload.new.sender_id &&
+            payload.new.receiver_id === user.id
+          ) {
+            supabase
+              .from("messages")
+              .update({ read: true })
+              .eq("id", payload.new.id);
+            fetchMessages(activeConvo.user_id);
+          }
         },
       )
       .subscribe();

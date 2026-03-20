@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 import Login from "./pages/Login";
 import Feed from "./pages/Feed";
-import UsernameSetup from "./pages/UsernameSetup";
 import Profile from "./pages/Profile";
 import ViewProfile from "./pages/ViewProfile";
 import GameFeed from "./pages/GameFeed";
@@ -19,8 +18,6 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [username, setUsername] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState("feed");
-  const [viewingUsername, setViewingUsername] = useState(null);
   const [isModerator, setIsModerator] = useState(false);
   const [viewingGame, setViewingGame] = useState(null);
   const [userBucks, setUserBucks] = useState(0);
@@ -31,7 +28,6 @@ export default function App() {
 
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
   const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
   const rawHeaders = {
     apikey: SUPABASE_KEY,
     Authorization: `Bearer ${SUPABASE_KEY}`,
@@ -40,9 +36,10 @@ export default function App() {
   const fetchProfile = async (userId) => {
     try {
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?select=username,nba_bucks,banned&user_id=eq.${userId}&limit=1`,
+        `${SUPABASE_URL}/rest/v1/profiles?select=username,nba_bucks,banned,avatar_url&user_id=eq.${userId}&limit=1`,
         { headers: rawHeaders },
       );
+
       const data = await res.json();
       return data?.[0] || null;
     } catch {
@@ -225,7 +222,6 @@ export default function App() {
         }
 
         setSession(session);
-
         const profile = await fetchProfile(session.user.id);
 
         if (profile?.banned) {
@@ -237,7 +233,8 @@ export default function App() {
         }
 
         setUsername(profile?.username || null);
-        setUserBucks(profile?.nba_bucks ?? 500);
+        setUserBucks(profile?.nba_bucks ?? 1000);
+        setAvatarUrl(profile?.avatar_url || null);
 
         const isMod = await fetchModerator(session.user.id);
         setIsModerator(isMod);
@@ -270,14 +267,14 @@ export default function App() {
       setSession(session);
       if (session) {
         const profile = await fetchProfile(session.user.id);
-
         if (profile?.banned) {
           await supabase.auth.signOut();
           setIsBanned(true);
           return;
         }
         setUsername(profile?.username || null);
-        setUserBucks(profile?.nba_bucks ?? 500);
+        setUserBucks(profile?.nba_bucks ?? 1000);
+        setAvatarUrl(profile?.avatar_url || null);
         const isMod = await fetchModerator(session.user.id);
         setIsModerator(isMod);
       } else {
@@ -305,8 +302,32 @@ export default function App() {
     );
 
   if (!session) return <Login isBanned={isBanned} />;
-  if (!username)
-    return <UsernameSetup user={session.user} onComplete={setUsername} />;
+
+  const sharedProps = {
+    user: session.user,
+    username,
+    userBucks,
+    isModerator,
+    unreadCount,
+    avatarUrl,
+    onBucksUpdate: setUserBucks,
+    onUnreadUpdate: (count) => setUnreadCount(count),
+    onBucksClick: () => setShowTransactions(true),
+    onShopClick: () => navigate("/shop"),
+    onMessagesClick: () => navigate("/messages"),
+    onProfileClick: () => navigate("/profile"),
+    onModPanelClick: () => navigate("/mod"),
+    onViewProfile: (u) => navigate(`/user/${u}`),
+    onLogout: () => supabase.auth.signOut(),
+    onGameClick: (g) => {
+      setViewingGame(g);
+      navigate(`/game/${g.id}`);
+    },
+    onDM: (target) => {
+      setActiveConvo(target);
+      navigate("/messages");
+    },
+  };
 
   return (
     <>
@@ -466,7 +487,7 @@ export default function App() {
         />
       )}
       {page === "shop" && (
-        <Shop
+        <><Shop
           user={session.user}
           username={username}
           userBucks={userBucks}
@@ -482,9 +503,18 @@ export default function App() {
           onViewProfile={(u) => {
             setViewingUsername(u);
             setPage("viewProfile");
-          }}
-        />
-      )}
+          } } /><Route
+            path="/shop"
+            element={<Shop {...sharedProps} onBack={() => navigate("/")} />} /><Route path="*" element={<Navigate to="/" replace />} /></>
+      </Routes>
     </>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppInner />
+    </BrowserRouter>
   );
 }

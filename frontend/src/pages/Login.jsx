@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { supabase } from "../supabase";
-import CommunityGuidelines from "./CommunityGuidelines";
 
 export default function Login({ isBanned = false }) {
   const [mode, setMode] = useState("signin"); // "signin" | "signup"
@@ -11,7 +10,6 @@ export default function Login({ isBanned = false }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [verified, setVerified] = useState(false);
-  const [showGuidelines, setShowGuidelines] = useState(false);
 
   const passwordsMatch = confirmPassword && password === confirmPassword;
   const passwordsMismatch = confirmPassword && password !== confirmPassword;
@@ -48,16 +46,38 @@ export default function Login({ isBanned = false }) {
         return;
       }
 
-      const { error } = await supabase.auth.signUp({
+      const { data: authData, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: "https://nba-hottakes-app.vercel.app",
+          emailRedirectTo: "https://rimrantz.com/",
           data: { username: username.toLowerCase() },
         },
       });
-      if (error) setError(error.message);
-      else setVerified(true);
+
+      if (error) {
+        setError(error.message);
+      } else {
+        const { error: insertError } = await supabase.from("profiles").insert({
+          user_id: authData.user.id,
+          username: username.toLowerCase(),
+        });
+        console.log("insert error:", insertError);
+
+        // Award first 30 badge
+        const { count } = await supabase
+          .from("profiles")
+          .select("*", { count: "exact", head: true });
+
+        if (count <= 30) {
+          await supabase.from("user_badges").insert({
+            user_id: authData.user.id,
+            badge_key: "first_30",
+          });
+        }
+
+        setVerified(true);
+      }
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -91,10 +111,6 @@ export default function Login({ isBanned = false }) {
     setPassword("");
     setConfirmPassword("");
   };
-
-  if (showGuidelines) {
-    return <CommunityGuidelines onBack={() => setShowGuidelines(false)} />;
-  }
 
   return (
     <div
@@ -541,19 +557,7 @@ export default function Login({ isBanned = false }) {
                   lineHeight: 1.5,
                 }}
               >
-                By continuing you agree to the{" "}
-                <span
-                  onClick={() => setShowGuidelines(true)}
-                  style={{
-                    color: "#f97316",
-                    cursor: "pointer",
-                    textDecoration: "underline",
-                    textDecorationStyle: "dotted",
-                  }}
-                >
-                  RimRantz Community Guidelines
-                </span>
-                .
+                By continuing you agree to the RimRantz Community Guidelines.
               </p>
             </>
           )}
