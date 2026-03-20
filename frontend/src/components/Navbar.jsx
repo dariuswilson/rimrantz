@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabase";
+import favicon from "../../assets/images/icons/favicon.png";
 
 export default function Navbar({
   username,
@@ -82,7 +83,7 @@ export default function Navbar({
         {/* Logo */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <img
-            src="assets/images/icons/favicon.png"
+            src={favicon}
             alt="RimRantz"
             className="w-8 h-8 rounded-lg flex-shrink-0"
           />
