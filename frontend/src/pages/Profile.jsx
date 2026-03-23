@@ -42,12 +42,11 @@ export default function Profile({
   username,
   user,
   isModerator,
-  onViewProfile,
   onBack,
-  onMessagesClick,
-  onBucksClick,
-  unreadCount,
-  onModPanelClick,
+  handleLogout,
+  userBucks,
+  avatarUrl,
+  ...props
 }) {
   const [profile, setProfile] = useState(null);
   const [takes, setTakes] = useState([]);
@@ -132,6 +131,17 @@ export default function Profile({
   const handleAvatarUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    // Block GIFs
+    if (file.type === "image/gif") {
+      alert(
+        "GIFs are not allowed as profile pictures. Please use a JPG or PNG.",
+      );
+      e.target.value = ""; // reset the input
+      return;
+    }
+
+    setUploading(true);
     setUploading(true);
 
     const fileExt = file.name.split(".").pop();
@@ -202,6 +212,7 @@ export default function Profile({
       .update({
         discord_id: data.discord_id,
         discord_username: data.discord_username,
+        discord_verified: true,
       })
       .eq("user_id", user.id);
 
@@ -221,19 +232,11 @@ export default function Profile({
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
       <Navbar
+        {...props}
+        onLogout={handleLogout}
+        avatarUrl={avatarUrl}
         username={username}
-        avatarUrl={profile?.avatar_url}
-        userBucks={profile?.nba_bucks}
-        onProfileClick={onBack}
-        onLogout={async () => {
-          await supabase.auth.signOut();
-        }}
-        onViewProfile={(u) => onViewProfile?.(u)}
-        onMessagesClick={onMessagesClick}
-        onBucksClick={onBucksClick}
-        unreadCount={unreadCount}
-        isModerator={isModerator}
-        onModPanelClick={onModPanelClick}
+        userBucks={userBucks}
       />
       <div className="max-w-2xl mx-auto p-6">
         {/* Back button */}
@@ -285,7 +288,7 @@ export default function Profile({
                   <span className="text-xs">✎</span>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/png, image/jpeg, image/webp"
                     onChange={handleAvatarUpload}
                     className="hidden"
                   />
@@ -442,12 +445,20 @@ export default function Profile({
                     background: "linear-gradient(135deg, #f59e0b, #f97316)",
                   }}
                 >
-                  <span className="text-sm">🏆</span>
-                  <span className="text-black font-bold text-xs">
-                    {badge.badge_key === "first_100"
-                      ? "First 100"
-                      : badge.badge_key}
-                  </span>
+                  <div
+                    title={
+                      badge.badge_key === "first_30"
+                        ? "One of the first 30 members to join RimRantz!"
+                        : ""
+                    }
+                  >
+                    <span className="text-sm">⭐</span>
+                    <span className="text-black font-bold text-xs">
+                      {badge.badge_key === "first_30"
+                        ? "Founding Member"
+                        : badge.badge_key}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -475,11 +486,25 @@ export default function Profile({
               </div>
               <div>
                 <p className="text-white text-sm font-semibold">Discord</p>
-                <p className="text-zinc-500 text-xs">
-                  {profile?.discord_username
-                    ? `@${profile.discord_username} linked ✅`
-                    : "Not linked"}
-                </p>
+                {profile?.discord_username ? (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-zinc-300 text-xs font-medium">
+                      @{profile.discord_username}
+                    </span>
+                    <span
+                      className="text-xs px-2 py-0.5 rounded-full font-semibold"
+                      style={{
+                        background: "rgba(34,197,94,0.15)",
+                        color: "#22c55e",
+                        border: "1px solid rgba(34,197,94,0.25)",
+                      }}
+                    >
+                      ✓ Verified
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-zinc-500 text-xs">Not linked</p>
+                )}
               </div>
             </div>
             {!profile?.discord_username && (
