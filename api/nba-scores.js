@@ -14,9 +14,23 @@ export default async function handler(req, res) {
         const comp = event.competitions[0];
         const home = comp.competitors.find((t) => t.homeAway === "home");
         const away = comp.competitors.find((t) => t.homeAway === "away");
-        const status = event.status.type.name;
-        const clock = event.status.displayClock;
-        const period = event.status.period;
+        const statusType = event.status?.type || {};
+        const compStatusType = comp.status?.type || {};
+
+        const statusName = statusType.name || "";
+        const statusState = statusType.state || compStatusType.state || "";
+        const clock = event.status?.displayClock || comp.status?.displayClock || "";
+        const period = Number(event.status?.period ?? comp.status?.period ?? 0);
+        const isCompleted =
+          Boolean(statusType.completed) || Boolean(compStatusType.completed);
+
+        // ESPN occasionally exposes inconsistent `name`; derive a robust app status.
+        const isLikelyLiveFromPeriod = period > 0 && !isCompleted;
+        const normalizedStatus = isCompleted
+          ? "closed"
+          : statusState === "in" || statusName === "STATUS_IN_PROGRESS" || isLikelyLiveFromPeriod
+            ? "inprogress"
+            : "scheduled";
 
         // Build win probabilities
         let homeWinPct = null;
@@ -50,7 +64,11 @@ export default async function handler(req, res) {
           "vs",
           away.team.abbreviation,
           "status:",
-          status,
+          statusName,
+          "state:",
+          statusState,
+          "normalized:",
+          normalizedStatus,
           "clock:",
           clock,
           "period:",
@@ -67,12 +85,7 @@ export default async function handler(req, res) {
 
         return {
           id: event.id,
-          status:
-            status === "STATUS_FINAL"
-              ? "closed"
-              : status === "STATUS_IN_PROGRESS"
-                ? "inprogress"
-                : "scheduled",
+          status: normalizedStatus,
           start_time: event.date,
           home: home.team.abbreviation,
           away: away.team.abbreviation,

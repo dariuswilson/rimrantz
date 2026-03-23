@@ -174,9 +174,14 @@ function GameCard({ game, onGameClick, onBet }) {
   const { label, isScheduled } = getGameStatus(game);
 
   const showScore = !isScheduled; // show score for live AND final games
-  // Don't show bets if no real probability data
+  const hasHomeProb = Number.isFinite(homeWinProb);
+  const hasAwayProb = Number.isFinite(awayWinProb);
+
+  // Don't show bet buttons if no real probability data.
   const hasProbData =
-    homeWinProb && awayWinProb && !(homeWinProb === 50 && awayWinProb === 50);
+    hasHomeProb &&
+    hasAwayProb &&
+    !(homeWinProb === 50 && awayWinProb === 50);
 
   const showBets = !isClosed && hasProbData;
 
@@ -254,7 +259,7 @@ function GameCard({ game, onGameClick, onBet }) {
       </div>
 
       {/* Bet buttons - show for scheduled AND live games */}
-      {showBets && (homeWinProb || awayWinProb) && (
+      {showBets && (
         <div className="px-3 pb-3 flex gap-2">
           <button
             onClick={() => onBet(awayAbbr, awayWinProb)}
@@ -262,10 +267,11 @@ function GameCard({ game, onGameClick, onBet }) {
             style={{
               background: "rgba(255,255,255,0.05)",
               border: "1px solid rgba(255,255,255,0.08)",
-              color: awayWinProb && awayWinProb < 50 ? "#22c55e" : "#f97316",
+              color:
+                hasAwayProb && awayWinProb < 50 ? "#22c55e" : "#f97316",
             }}
           >
-            {awayAbbr} {awayWinProb ? `${Math.round(awayWinProb)}%` : "—"}
+            {awayAbbr} {hasAwayProb ? `${Math.round(awayWinProb)}%` : "—"}
           </button>
           <button
             onClick={() => onBet(homeAbbr, homeWinProb)}
@@ -273,10 +279,11 @@ function GameCard({ game, onGameClick, onBet }) {
             style={{
               background: "rgba(255,255,255,0.05)",
               border: "1px solid rgba(255,255,255,0.08)",
-              color: homeWinProb && homeWinProb < 50 ? "#22c55e" : "#f97316",
+              color:
+                hasHomeProb && homeWinProb < 50 ? "#22c55e" : "#f97316",
             }}
           >
-            {homeAbbr} {homeWinProb ? `${Math.round(homeWinProb)}%` : "—"}
+            {homeAbbr} {hasHomeProb ? `${Math.round(homeWinProb)}%` : "—"}
           </button>
         </div>
       )}
