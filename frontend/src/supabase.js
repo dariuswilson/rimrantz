@@ -11,3 +11,5 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
     storageKey: "nba-hottakes-auth-v2",
   },
 });
+
+// test
